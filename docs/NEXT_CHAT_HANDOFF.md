@@ -6,8 +6,8 @@
 
 - GitHub: `Aspksa/Miyori-Kitsune`
 - Ветка: `main`
-- Текущий релиз: **v0.14.0**
-- Последний функциональный релизный коммит: `3a877a379cfceb8714ad99a20ef6f115f0c853e5`
+- Текущий релиз: **v0.15.0**
+- Последний функциональный релизный коммит: `7d2ad549d37e0220d3299f78207f9fb36ff9165c`
 - Точка запуска Windows: `MiyoriKitsune.bat`
 - Manifest: `version.json`
 
@@ -106,6 +106,22 @@ Cloud Teacher **не должен**:
 - Добавлены тесты `tests/test_neural_memory.py`.
 
 Важно: **обученных собственных весов Miyori ещё нет**. v0.14.0 даёт инфраструктуру, которая уже умеет принять локальную GGUF-модель, подключить её, проверить и безопасно использовать.
+
+## Новое в v0.15.0 — Cloud Teacher + Chat v1.2
+
+- Добавлен `core/teacher_gateway.py`.
+- Cloud Teacher использует отдельный Foundation Models API Key и работает через `https://foundation-models.api.cloud.ru/v1`.
+- Foundation Models key и GPU Training credentials разделены.
+- Teacher **не меняет и не подменяет** ответ Miyori: сначала отвечает Miyori Brain/Student, затем Teacher при необходимости создаёт отдельный teaching signal.
+- Автопроверка выключена по умолчанию, потому что каждый review расходует токены.
+- В чате после ответа доступна кнопка **«Проверить Teacher»**.
+- Teacher feedback показывается отдельным сообщением с подписью Cloud Teacher.
+- Пользователь выбирает **«В обучение»** или **«Не использовать»**.
+- Только `accepted_for_training=true` teacher-feedback попадает в следующий training dataset.
+- Чат показывает pipeline trace: runtime мозга, тип retrieval памяти и факт Teacher review.
+- Верхний status strip теперь отдельно показывает: мозг, память, мир, навыки, учителя и обучение.
+- В Личном кабинете появились отдельные настройки Foundation Models Teacher и GPU Training.
+- Добавлены regression tests безопасности Teacher.
 
 ## Что уже реализовано
 
@@ -223,17 +239,16 @@ Chat v1.1 — основной UI.
 
 ## Что делать дальше
 
-Наиболее логичный следующий этап — **Teacher–Student orchestration в Cloud.ru**:
+Наиболее логичный следующий этап — **Cloud-hosted Miyori Student runtime**:
 
-1. Разделить runtime на `Miyori Student` и `Cloud Teacher`.
-2. Сделать отдельный Teacher Gateway для critique/label/evaluate, не для постоянного пользовательского чата.
-3. Выбрать облачно исполняемую базовую модель для Miyori Student.
-4. Добавить cloud Student inference runtime.
-5. Сохранять teacher critique и labels отдельно от обычной памяти.
-6. Собирать validated training dataset.
-7. Затем реализовать lifecycle:
-   `experience → teacher critique → dataset → train candidate → evaluate → explicit approval → promote/rollback`.
-8. Платный GPU job никогда не запускать автоматически.
+1. Сделать отдельный `Student Runtime`, не связанный с ролью Teacher.
+2. Подключать обычный пользовательский диалог к Miyori Student, когда candidate/active Student доступен.
+3. Оставить internal planner как аварийный fallback.
+4. Все реальные действия оставить через Action Gateway.
+5. Сделать очередь teacher-feedback с accept/reject и дедупликацией.
+6. После накопления качественных данных — cost estimate → budget → explicit confirm → GPU train.
+7. Новую Student candidate обязательно evaluate/compare; никакой автоматической активации.
+8. После этого развивать Eyes/ears/hands и streaming chat.
 
 Перед новым изменением сначала прочитать:
 - `docs/PROJECT_STATE.json`
