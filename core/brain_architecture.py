@@ -13,6 +13,7 @@ from self_development import list_proposals
 from skills import registry
 from sleep_engine import consolidate
 from training_data import list_datasets
+from student_gateway import status as student_status
 from teacher_gateway import list_feedback as list_teacher_feedback, status as teacher_status
 from world_model import snapshot
 
@@ -36,6 +37,7 @@ def architecture_state():
             "evaluations": latest_reports(20),
         },
         "memory_engine": semantic_memory_status(),
+        "student": student_status(),
         "teacher": {
             "status": teacher_status(),
             "feedback": list_teacher_feedback(20),
@@ -80,6 +82,7 @@ def overview_state():
         },
         "models": {**model_summary(), "runtime": runtime_status(), "evaluations": len(latest_reports(100))},
         "memory_engine": semantic_memory_status(),
+        "student": student_status(),
         "teacher": teacher_status(),
         "embodiment": embodiment_status(),
         "training": {
