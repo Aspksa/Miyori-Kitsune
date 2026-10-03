@@ -6,8 +6,8 @@
 
 - GitHub: `Aspksa/Miyori-Kitsune`
 - Ветка: `main`
-- Текущий релиз: **v0.15.0**
-- Последний функциональный релизный коммит: `7d2ad549d37e0220d3299f78207f9fb36ff9165c`
+- Текущий релиз: **v0.16.0**
+- Последний функциональный релизный коммит: `b4ae809dc6a312d08b6e14891b5656e5d5202be5`
 - Точка запуска Windows: `MiyoriKitsune.bat`
 - Manifest: `version.json`
 
@@ -122,6 +122,53 @@ Cloud Teacher **не должен**:
 - Верхний status strip теперь отдельно показывает: мозг, память, мир, навыки, учителя и обучение.
 - В Личном кабинете появились отдельные настройки Foundation Models Teacher и GPU Training.
 - Добавлены regression tests безопасности Teacher.
+
+## Новое в v0.16.0 — Cloud-hosted Miyori Student
+
+Теперь у Miyori есть отдельный runtime для **собственного облачного Student**, размещаемого в Cloud.ru Evolution ML Inference.
+
+Архитектура:
+- **Miyori Student** — основной генеративный мозг обычного диалога.
+- **Cloud Teacher** — отдельный учитель для critique/labels/training signals.
+- Teacher никогда автоматически не становится Student.
+
+Student:
+- runtime: `cloud_ml_inference`;
+- endpoint: только HTTPS `*.inference.cloud.ru`;
+- OpenAI-compatible `/v1/chat/completions`;
+- отдельный API Token хранится только в локальном secrets-файле;
+- получает релевантную память, project/task context и последние сообщения текущего диалога;
+- реальные действия всё равно выполняются только через planner + Action Gateway.
+
+Lifecycle:
+`save/register candidate → test endpoint → evaluation → explicit promote → active → rollback`
+
+Evaluation:
+- проверка идентичности Miyori;
+- работа с памятью/контекстом;
+- честность о невыполненных действиях;
+- action grounding;
+- минимальный score для активации: **0.75**;
+- активация только по явному подтверждению пользователя.
+
+Версии Student изолированы:
+- конфигурации endpoint/model/token сохраняются по version;
+- active vN продолжает работать, пока candidate vN+1 тестируется;
+- нельзя изменить endpoint/model активной версии без нового номера version;
+- rollback может вернуть предыдущую активную модель и её сохранённую конфигурацию.
+
+В Личном кабинете появились:
+- ML Inference endpoint;
+- Student model;
+- Student version;
+- Student API Token;
+- включение Student;
+- **Проверить Student**;
+- **Оценить candidate**;
+- **Активировать**;
+- **Откатить мозг**.
+
+Важно: код runtime готов, но фактический ML Inference instance ещё нужно создать в Cloud.ru и вставить его endpoint/token в Личный кабинет. Сама система не создаёт платный GPU-инференс автоматически.
 
 ## Что уже реализовано
 
@@ -239,16 +286,16 @@ Chat v1.1 — основной UI.
 
 ## Что делать дальше
 
-Наиболее логичный следующий этап — **Cloud-hosted Miyori Student runtime**:
+Наиболее логичный следующий этап — **первый реальный Student instance + controlled training pipeline**:
 
-1. Сделать отдельный `Student Runtime`, не связанный с ролью Teacher.
-2. Подключать обычный пользовательский диалог к Miyori Student, когда candidate/active Student доступен.
-3. Оставить internal planner как аварийный fallback.
-4. Все реальные действия оставить через Action Gateway.
-5. Сделать очередь teacher-feedback с accept/reject и дедупликацией.
-6. После накопления качественных данных — cost estimate → budget → explicit confirm → GPU train.
-7. Новую Student candidate обязательно evaluate/compare; никакой автоматической активации.
-8. После этого развивать Eyes/ears/hands и streaming chat.
+1. Создать Cloud.ru ML Inference Model RUN для базовой Student-модели.
+2. Для разработки предпочесть serverless/min replicas = 0, если выбранная конфигурация это поддерживает.
+3. Ввести endpoint/token в Личном кабинете и пройти test → evaluation → explicit activate.
+4. Затем собрать качественные accepted Teacher signals + confirmed Miyori experience.
+5. Добавить train/validation split, deduplication и dataset quality gates.
+6. Перед платным обучением показывать estimate/budget и требовать подтверждение.
+7. Обучить первую LoRA/Student candidate, развернуть её отдельной version и сравнить с active.
+8. После этого — streaming chat, real embeddings и Eyes/Ears/Hands.
 
 Перед новым изменением сначала прочитать:
 - `docs/PROJECT_STATE.json`
