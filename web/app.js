@@ -31,6 +31,22 @@ async function api(url,options={}){
   return data;
 }
 
+const componentLabels={core:"Ядро",interface:"Интерфейс",updater:"Обновлятор",chat:"Чат",workspace:"Рабочее пространство",home:"Домашнее пространство",settings:"Настройки",account:"Личный кабинет",mobile:"Мобильное приложение"};
+
+function applyComponentVersions(components={}){
+  Object.entries(components).forEach(([name,value])=>{
+    document.querySelectorAll('[data-version="'+name+'"]').forEach(el=>el.textContent="v"+value);
+  });
+}
+
+function renderComponentVersions(items=[]){
+  const root=document.getElementById("componentVersions");
+  root.innerHTML=items.map(item=>{
+    const state=item.changed?'<span class="component-change">v'+item.current+' → v'+item.latest+'</span>':'<span class="component-same">v'+item.current+'</span>';
+    return '<div class="component-row"><b>'+ (componentLabels[item.name]||item.name) +'</b>'+state+'</div>';
+  }).join("");
+}
+
 async function checkCore(){
   const dot=document.getElementById("healthDot"),statusText=document.getElementById("healthText"),version=document.getElementById("versionText");
   try{
@@ -38,6 +54,7 @@ async function checkCore(){
     dot.classList.add("ok");statusText.textContent="Ядро работает";version.textContent="Miyori Core v"+data.version+" · portable";
     document.getElementById("brandVersion").textContent="v"+data.version;
     document.getElementById("currentVersion").textContent="v"+data.version;
+    applyComponentVersions(data.components||{});
   }catch{dot.classList.remove("ok");statusText.textContent="Ядро недоступно";version.textContent="Проверьте локальный сервер";}
 }
 
@@ -48,7 +65,7 @@ async function checkUpdate(){
   checkButton.disabled=true;applyButton.disabled=true;updateStatus.textContent="Проверка…";updateMessage.textContent="Связываемся с GitHub и проверяем стабильную версию.";updateDot.classList.remove("ready");
   try{
     const data=await api("/api/update/check");
-    document.getElementById("currentVersion").textContent="v"+data.current;latestVersion.textContent="v"+data.latest;
+    document.getElementById("currentVersion").textContent="v"+data.current;latestVersion.textContent="v"+data.latest;renderComponentVersions(data.components||[]);
     if(data.available){updateStatus.textContent="Доступно";updateMessage.textContent="Найдена новая версия. Перед установкой будет создана резервная копия.";updateMiniStatus.textContent="Доступно v"+data.latest;updateDot.classList.add("ready");applyButton.disabled=false;}
     else{updateStatus.textContent="Актуально";updateMessage.textContent="Установлена последняя стабильная версия из GitHub.";updateMiniStatus.textContent="GitHub · актуально";}
   }catch(error){updateStatus.textContent="Ошибка";updateMessage.textContent=error.message;updateMiniStatus.textContent="GitHub · ошибка";}
