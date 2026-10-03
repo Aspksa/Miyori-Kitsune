@@ -56,11 +56,94 @@ def _session_path(session_id: str) -> Path:
     return SESSIONS_DIR / f"{safe or 'default'}.json"
 
 
+def _session_title(messages: list[dict]) -> str:
+    for message in messages:
+        if message.get("role") == "user":
+            text = " ".join(str(message.get("content", "")).split())
+            if text:
+                return text[:56] + ("…" if len(text) > 56 else "")
+    return "Новый диалог"
+
+
+def list_sessions(limit: int = 50) -> list[dict]:
+    if not SESSIONS_DIR.exists():
+        return []
+    rows = []
+    for path in SESSIONS_DIR.glob("*.json"):
+        data = _read_json(path, {})
+        if not isinstance(data, dict):
+            continue
+        messages = data.get("messages", [])
+        rows.append({
+            "id": str(data.get("id") or path.stem),
+            "title": str(data.get("title") or _session_title(messages)),
+            "updated_at": int(data.get("updated_at", 0) or 0),
+            "created_at": int(data.get("created_at", data.get("updated_at", 0)) or 0),
+            "message_count": len(messages),
+            "preview": str(messages[-1].get("content", ""))[:120] if messages else "",
+        })
+    rows.sort(key=lambda item: item["updated_at"], reverse=True)
+    return rows[:max(1, min(limit, 200))]
+
+
+def get_session(session_id: str) -> dict:
+    path = _session_path(session_id)
+    data = _read_json(path, None)
+    if not isinstance(data, dict):
+        raise KeyError("Диалог не найден.")
+    messages = data.get("messages", [])
+    return {
+        "id": str(data.get("id") or session_id),
+        "title": str(data.get("title") or _session_title(messages)),
+        "created_at": int(data.get("created_at", 0) or 0),
+        "updated_at": int(data.get("updated_at", 0) or 0),
+        "messages": messages[-200:],
+    }
+
+
+def create_session(title: str = "") -> dict:
+    session_id = "session_" + uuid.uuid4().hex[:12]
+    now = _now()
+    data = {
+        "id": session_id,
+        "title": str(title).strip()[:80] or "Новый диалог",
+        "created_at": now,
+        "updated_at": now,
+        "messages": [],
+    }
+    _write_json(_session_path(session_id), data)
+    return get_session(session_id)
+
+
+def rename_session(session_id: str, title: str) -> dict:
+    title = " ".join(str(title).split())[:80]
+    if not title:
+        raise ValueError("Название диалога пустое.")
+    path = _session_path(session_id)
+    data = _read_json(path, None)
+    if not isinstance(data, dict):
+        raise KeyError("Диалог не найден.")
+    data["title"] = title
+    data["updated_at"] = _now()
+    _write_json(path, data)
+    return get_session(session_id)
+
+
+def delete_session(session_id: str) -> bool:
+    path = _session_path(session_id)
+    if not path.exists():
+        return False
+    path.unlink()
+    return True
+
+
 def _append_session(session_id: str, role: str, content: str, meta: dict | None = None) -> None:
     path = _session_path(session_id)
     data = _read_json(path, {"id": session_id, "messages": []})
     if not isinstance(data, dict):
         data = {"id": session_id, "messages": []}
+    if not data.get("created_at"):
+        data["created_at"] = _now()
     messages = data.setdefault("messages", [])
     messages.append({
         "id": uuid.uuid4().hex[:12],
@@ -70,6 +153,8 @@ def _append_session(session_id: str, role: str, content: str, meta: dict | None 
         "meta": meta or {},
     })
     data["messages"] = messages[-200:]
+    if not data.get("title") or data.get("title") == "Новый диалог":
+        data["title"] = _session_title(data["messages"])
     data["updated_at"] = _now()
     _write_json(path, data)
 
