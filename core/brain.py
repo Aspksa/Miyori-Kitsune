@@ -9,9 +9,11 @@ from pathlib import Path
 from assistant_gateway import build_context, capability_manifest, execute_action
 from brain_runtime import InternalPlannerRuntime
 from cognitive_loop import conclude, perceive
+from embodiment import status as embodiment_status
 from entities import get_project, list_projects, list_tasks
 from identity import get_identity
 from learning import observe
+from model_registry import summary as model_registry_summary
 from skills import registry as skill_registry
 from world_model import snapshot as world_snapshot
 
@@ -214,7 +216,7 @@ def _extract_project_reference(text: str) -> dict | None:
 def _plan(text: str, project_id: str | None = None) -> dict:
     clean = _normalize(text)
     lower = clean.lower()
-    context = build_context(project_id=project_id)
+    context = build_context(project_id=project_id, query=clean)
 
     match = re.match(r"^(?:создай|создать|добавь)\s+проект\s+(.+)$", clean, re.I)
     if match:
@@ -333,7 +335,7 @@ def think(message: str, session_id: str = "default", project_id: str | None = No
             }
 
     response = _render(plan, action_results)
-    context = build_context(project_id=project_id, task_id=task_id)
+    context = build_context(project_id=project_id, task_id=task_id, query=message)
     reflection = conclude(perception, plan.get("intent", "unknown"), plan.get("actions", []), "success")
     learning_item = None
     if plan.get("intent") not in {"conversation", "task.list", "project.inspect"}:
