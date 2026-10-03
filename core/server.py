@@ -12,7 +12,17 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from updater import UpdateError, apply_update, check_update, local_manifest, local_version
+from updater import (
+    UpdateError,
+    check_update,
+    download_mobile_client,
+    local_manifest,
+    local_version,
+    mobile_update_status,
+    start_update,
+    update_history,
+    update_progress,
+)
 
 APP_NAME = "Miyori Kitsune"
 APP_VERSION = local_version()
@@ -106,6 +116,21 @@ class MiyoriHandler(BaseHTTPRequestHandler):
                 self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_GATEWAY)
             return
 
+        if parsed.path == "/api/update/progress":
+            self._json({"ok": True, **update_progress()})
+            return
+
+        if parsed.path == "/api/update/history":
+            self._json({"ok": True, "items": update_history()})
+            return
+
+        if parsed.path == "/api/mobile/update/check":
+            try:
+                self._json(mobile_update_status())
+            except UpdateError as exc:
+                self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_GATEWAY)
+            return
+
         requested = parsed.path.lstrip("/") or "index.html"
         candidate = (WEB_DIR / requested).resolve()
 
@@ -143,13 +168,18 @@ class MiyoriHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/update/apply":
             self._read_json_body()
             try:
-                self._json(apply_update())
+                self._json({"ok": True, **start_update()})
             except UpdateError as exc:
                 log.warning("Update failed: %s", exc)
                 self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_GATEWAY)
-            except Exception:
-                log.exception("Unexpected updater failure")
-                self._json({"ok": False, "error": "Внутренняя ошибка обновления."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if parsed.path == "/api/mobile/update/download":
+            self._read_json_body()
+            try:
+                self._json(download_mobile_client())
+            except UpdateError as exc:
+                self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_GATEWAY)
             return
 
         self._json({"ok": False, "error": "Unknown endpoint"}, HTTPStatus.NOT_FOUND)
