@@ -6,8 +6,8 @@
     "name": "Miyori Kitsune",
     "repository": "Aspksa/Miyori-Kitsune",
     "branch": "main",
-    "current_release": "0.14.0",
-    "latest_known_commit": "3a877a379cfceb8714ad99a20ef6f115f0c853e5",
+    "current_release": "0.15.0",
+    "latest_known_commit": "7d2ad549d37e0220d3299f78207f9fb36ff9165c",
     "launcher": "MiyoriKitsune.bat",
     "runtime": "Python 3.10+ stdlib local HTTP server on 127.0.0.1",
     "primary_manifest": "version.json",
@@ -56,7 +56,8 @@
       "embeddings": "core/embeddings.py",
       "semantic_memory": "core/semantic_memory.py",
       "neural_runtime": "core/neural_runtime.py",
-      "model_evaluation": "core/model_evaluation.py"
+      "model_evaluation": "core/model_evaluation.py",
+      "teacher_gateway": "core/teacher_gateway.py"
     },
     "training": {
       "cloudru_connector": "core/cloudru.py",
@@ -90,21 +91,22 @@
     "embodiment": "data/brain/embodiment.json",
     "semantic_memory_index": "data/brain/memory-vectors.json",
     "model_evaluations": "data/brain/models/evaluations.json",
-    "local_model_artifacts": "data/models/"
+    "local_model_artifacts": "data/models/",
+    "teacher_feedback": "data/brain/teacher/feedback.json"
   },
   "components": {
-    "core": "0.14.0",
-    "interface": "0.10.0",
+    "core": "0.15.0",
+    "interface": "0.11.0",
     "updater": "0.4.0",
-    "chat": "1.1.0",
+    "chat": "1.2.0",
     "workspace": "0.4.0",
     "home": "0.3.0",
     "settings": "0.3.0",
-    "account": "0.5.0",
+    "account": "0.6.0",
     "mobile": "0.2.0",
     "memory": "0.4.0",
     "assistant": "0.3.0",
-    "brain": "0.7.0",
+    "brain": "0.8.0",
     "identity": "0.1.0",
     "world_model": "0.1.0",
     "reflection": "0.1.0",
@@ -113,14 +115,15 @@
     "self_development": "0.2.0",
     "safety_kernel": "0.2.0",
     "sleep_engine": "0.1.0",
-    "cloudru": "0.1.0",
-    "training_data": "0.1.0",
+    "cloudru": "0.2.0",
+    "training_data": "0.2.0",
     "model_registry": "0.1.0",
     "embodiment": "0.1.0",
     "embeddings": "0.1.0",
     "semantic_memory": "0.1.0",
     "neural_runtime": "0.1.0",
-    "model_evaluation": "0.1.0"
+    "model_evaluation": "0.1.0",
+    "teacher_gateway": "0.1.0"
   },
   "major_features": {
     "projects_tasks": true,
@@ -152,7 +155,13 @@
     "local_gguf_runtime": true,
     "hybrid_vector_memory": true,
     "neural_embeddings_optional": true,
-    "model_evaluation_harness": true
+    "model_evaluation_harness": true,
+    "cloud_teacher_gateway": true,
+    "teacher_manual_review": true,
+    "teacher_auto_review_opt_in": true,
+    "teacher_feedback_human_acceptance": true,
+    "chat_pipeline_trace": true,
+    "separated_foundation_and_gpu_credentials": true
   },
   "current_brain_behavior": {
     "model_runtime": "dynamic runtime selected from Model Registry; internal planner is safe fallback; llama_cpp local GGUF runtime supported when configured",
@@ -185,7 +194,14 @@
     },
     "neural_safety": "free conversation may use neural runtime; real actions remain planned/executed through deterministic planner and Action Gateway",
     "model_promotion": "evaluation never auto-promotes; active model promotion still requires explicit approval",
-    "teacher_student_target": "Следующий архитектурный приоритет — реализовать Teacher–Student orchestration: Cloud Teacher участвует только в обучении/критике/оценке, а не подменяет Miyori Student в обычном диалоге."
+    "teacher_student_target": "Следующий архитектурный приоритет — реализовать Teacher–Student orchestration: Cloud Teacher участвует только в обучении/критике/оценке, а не подменяет Miyori Student в обычном диалоге.",
+    "teacher_student": {
+      "student": "Miyori Brain/Student remains the response-producing system. The current built-in planner remains fallback until a dedicated cloud-hosted Miyori Student model endpoint/weights exist.",
+      "teacher": "Cloud Teacher uses Cloud.ru Foundation Models only for critique, labeling and teaching signals. It never replaces the already generated Miyori response.",
+      "auto_review": "disabled by default because it causes paid API calls",
+      "manual_review": "available from chat after a Miyori response",
+      "training_acceptance": "teacher feedback is excluded from datasets until explicitly marked accepted_for_training by the user"
+    }
   },
   "chat": {
     "role": "primary user interface",
@@ -235,7 +251,22 @@
     "service_auth": "/service_auth",
     "distributed_train_configs": "/configs?cluster_type=MT",
     "jobs": "POST /jobs",
-    "training_auto_start": false
+    "training_auto_start": false,
+    "foundation_models": {
+      "api_base": "https://foundation-models.api.cloud.ru/v1",
+      "auth": "separate Foundation Models API Key stored locally/encrypted like other secrets",
+      "endpoints": [
+        "GET /models",
+        "POST /chat/completions"
+      ],
+      "teacher_model_default": "openai/gpt-oss-120b",
+      "role": "Cloud Teacher only"
+    },
+    "training": {
+      "role": "GPU training for Miyori Student candidates",
+      "automatic_paid_start": false,
+      "credentials": "existing Key ID / Key Secret / Workspace ID / x-api-key remain separate from Foundation Models key"
+    }
   },
   "training_data": {
     "format": "JSONL",
@@ -256,7 +287,11 @@
       "POST /api/brain/sleep",
       "GET /api/brain/models",
       "GET /api/brain/memory/semantic",
-      "POST /api/brain/model/evaluate"
+      "POST /api/brain/model/evaluate",
+      "GET /api/brain/teacher",
+      "GET /api/brain/teacher/feedback",
+      "POST /api/brain/teacher/review",
+      "POST /api/brain/teacher/feedback/mark"
     ],
     "development": [
       "GET /api/brain/development",
@@ -301,7 +336,8 @@
       "POST /api/cloudru/test",
       "GET /api/cloudru/configs",
       "GET /api/cloudru/jobs",
-      "POST /api/cloudru/training/submit"
+      "POST /api/cloudru/training/submit",
+      "POST /api/cloudru/foundation/test"
     ],
     "training": [
       "GET /api/training/datasets",
@@ -342,79 +378,66 @@
   ],
   "latest_commits": [
     [
-      "3a877a379cfceb8714ad99a20ef6f115f0c853e5",
-      "Release Miyori Neural Core foundation v0.14.0"
+      "7d2ad549d37e0220d3299f78207f9fb36ff9165c",
+      "Release Teacher-Student chat foundation v0.15.0"
     ],
     [
-      "3eb6ced9fb166afb63b79272f52180f4090b1ad4",
-      "Add neural runtime and vector memory tests"
+      "be0116ac45d3f002c9e6d92533e18d34aeb8b847",
+      "Add Cloud Teacher safety regression tests"
     ],
     [
-      "62aa152187ea16ae0abe53a5e32ef4b81e70dc17",
-      "Harden local neural runtime loading"
+      "84f6033cb1837e15e869ff2de4bb03cbf193732f",
+      "Add explicit Cloud Teacher review workflow in chat"
     ],
     [
-      "eb93b29f7c8689da277ff93f2ab535cda7434815",
-      "Keep neural embeddings local-only"
+      "1b0a14773621a8fc1ed7a43869f1e29f0895ad80",
+      "Integrate Cloud Teacher: server.py"
     ],
     [
-      "c82844bc5d43cb84d1f8857e7c8f9a4c0d0fbe5e",
-      "Integrate neural runtime and semantic memory: server.py"
+      "7f5b4c2e73f0782999887d752b6a9dfb177cdd71",
+      "Add Miyori Cloud Teacher gateway"
     ]
   ],
   "recommended_next_steps": [
     {
       "priority": 1,
-      "name": "Teacher–Student orchestration",
+      "name": "Cloud-hosted Miyori Student runtime",
       "details": [
-        "добавить отдельные роли Miyori Student и Cloud Teacher",
-        "добавить Teacher Gateway, отделённый от основного Brain runtime",
-        "сохранять teacher critique/labels как отдельные артефакты обучения",
-        "не направлять обычный пользовательский чат напрямую в Teacher по умолчанию"
+        "define a separate Student inference endpoint/runtime that is not the Cloud Teacher",
+        "support candidate Student models in Model Registry",
+        "route normal conversation to Miyori Student when available and keep internal planner as fallback",
+        "preserve Action Gateway for all real actions"
       ]
     },
     {
       "priority": 2,
-      "name": "Cloud-hosted Miyori Student",
+      "name": "Teacher learning queue",
       "details": [
-        "выбрать базовую open-weight модель для Miyori Student",
-        "хранить и запускать её в облаке, локальный вес не обязателен",
-        "зарегистрировать candidate в Model Registry",
-        "подключить inference endpoint через отдельный Student Runtime"
+        "add a compact chat view for pending teacher feedback",
+        "batch accept/reject teaching signals",
+        "deduplicate and quality-score accepted examples",
+        "build train/validation datasets only from accepted signals and confirmed Miyori experience"
       ]
     },
     {
       "priority": 3,
-      "name": "Teacher-assisted learning",
+      "name": "Cloud training lifecycle",
       "details": [
-        "критика ответов и reasoning outcomes",
-        "очистка и разметка памяти/рефлексий",
-        "генерация preference pairs и supervised examples",
-        "dataset validation и train/validation split",
-        "не обучаться автоматически на неподтверждённых ошибочных данных"
+        "cost estimate and budget ceiling before paid GPU run",
+        "train candidate Miyori Student",
+        "evaluation against active version",
+        "explicit approve -> promote, otherwise reject/rollback",
+        "never auto-promote or auto-start paid training"
       ]
     },
     {
       "priority": 4,
-      "name": "Cloud training lifecycle",
+      "name": "Professional chat evolution",
       "details": [
-        "estimate cost before paid GPU run",
-        "budget ceiling",
-        "explicit confirmation before training",
-        "train candidate weights",
-        "evaluate against previous active model",
-        "approve -> promote or rollback"
-      ]
-    },
-    {
-      "priority": 5,
-      "name": "Embodiment after brain foundation",
-      "details": [
-        "eyes: image/screen/camera adapters",
-        "ears: microphone/STT",
-        "voice: TTS",
-        "hands: sandboxed computer/file tools",
-        "mobility only behind explicit adapters and permissions"
+        "streaming responses when Student runtime supports it",
+        "message-level memory/use indicators",
+        "compact learning/teacher activity drawer",
+        "image/screen input as Eyes adapter without bloating the main UI"
       ]
     }
   ],
