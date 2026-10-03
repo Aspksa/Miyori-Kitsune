@@ -6,8 +6,8 @@
     "name": "Miyori Kitsune",
     "repository": "Aspksa/Miyori-Kitsune",
     "branch": "main",
-    "current_release": "0.16.0",
-    "latest_known_commit": "b4ae809dc6a312d08b6e14891b5656e5d5202be5",
+    "current_release": "0.17.0",
+    "latest_known_commit": "5dbdb132b124aa7f227d98ca7e77ca6be591a0f6",
     "launcher": "MiyoriKitsune.bat",
     "runtime": "Python 3.10+ stdlib local HTTP server on 127.0.0.1",
     "primary_manifest": "version.json",
@@ -27,7 +27,8 @@
     "paid_training": "не запускать платные GPU job автоматически; запуск только отдельным контролируемым действием",
     "ai_identity": "Miyori Kitsune должна оставаться собственной личной AI пользователя: собственная личность, память, модель мира, навыки, история развития и собственные версии модели/весов.",
     "teacher_student": "Целевая архитектура: Miyori Student — основной развиваемый мозг Miyori; Cloud Teacher — внешний сильный учитель за кулисами. Teacher не должен постоянно отвечать пользователю вместо Miyori.",
-    "model_ownership": "Собственные версии Miyori Student могут храниться и исполняться в облаке; локальная модель не является обязательной."
+    "model_ownership": "Собственные версии Miyori Student могут храниться и исполняться в облаке; локальная модель не является обязательной.",
+    "ui_principle": "Главный интерфейс должен быть понятен без знания архитектуры. Не показывать пользователю Brain/Planner/Runtime/Candidate/Endpoint/LoRA/метрики и версии на основном экране. Технические детали оставлять внутри или в сворачиваемом блоке «Дополнительные настройки»."
   },
   "architecture": {
     "core": {
@@ -97,13 +98,13 @@
   },
   "components": {
     "core": "0.16.0",
-    "interface": "0.12.0",
+    "interface": "0.13.0",
     "updater": "0.4.0",
-    "chat": "1.3.0",
+    "chat": "1.4.0",
     "workspace": "0.4.0",
     "home": "0.3.0",
     "settings": "0.3.0",
-    "account": "0.7.0",
+    "account": "0.8.0",
     "mobile": "0.2.0",
     "memory": "0.4.0",
     "assistant": "0.3.0",
@@ -170,7 +171,11 @@
     "student_explicit_promotion": true,
     "student_explicit_rollback": true,
     "student_chat_history_context": true,
-    "student_runtime_fallback": true
+    "student_runtime_fallback": true,
+    "simplified_chat_first_ui": true,
+    "progressive_cloud_setup": true,
+    "hidden_technical_runtime_ui": true,
+    "friendly_cloud_error_copy": true
   },
   "current_brain_behavior": {
     "model_runtime": "Model Registry selects the active runtime. cloud_ml_inference is supported for Miyori Student on Cloud.ru ML Inference; internal planner remains fallback.",
@@ -421,69 +426,62 @@
   ],
   "latest_commits": [
     [
-      "b4ae809dc6a312d08b6e14891b5656e5d5202be5",
-      "Release cloud-hosted Miyori Student v0.16.0"
+      "5dbdb132b124aa7f227d98ca7e77ca6be591a0f6",
+      "Release simplified Miyori UX v0.17.0"
     ],
     [
-      "46dede4b8b8ea28e883eb37fadd79ddcbc9cc509",
-      "Show active and candidate Student versions in account"
+      "815b97a9da24946f1334625416d5ccc1b8453797",
+      "Reveal Cloud actions only when relevant"
     ],
     [
-      "4b57e7105b9511beb85bff8a0028c5ea141dbd55",
-      "Store versioned Cloud Student inference configurations"
+      "4b4342685e87adc33b95f075c2b27135d9090212",
+      "Make Student setup progressive and simpler"
     ],
     [
-      "7e13159ab09d0eecd89143c8403b964efacd7304",
-      "Strengthen Miyori Student evaluation criteria"
+      "e6cd04389ddb76e856193592573e9d1e4f865729",
+      "Reduce visible account and system clutter"
     ],
     [
-      "0c15114b12fce2d6439af5ea36eed34433fcff51",
-      "Test explicit Cloud Student rollback approval"
+      "406807ac895fc236c150f33b84afb65acc19e0e2",
+      "Simplify Miyori chat and Cloud setup UX"
     ]
   ],
   "recommended_next_steps": [
     {
       "priority": 1,
-      "name": "ML Inference provisioning and cost guard",
+      "name": "Keep UI human-first",
       "details": [
-        "integrate Cloud.ru ML Inference management API when exact provisioning schema is finalized",
-        "show estimated GPU/resource cost before creating or keeping an inference running",
-        "prefer min replicas 0/serverless for development where appropriate",
-        "never create a paid inference without explicit confirmation",
-        "show running/waiting/stopped Student state in chat"
+        "do not reintroduce developer terminology into the main chat",
+        "keep technical architecture observable through internal APIs or advanced settings only",
+        "continue reducing copy and showing actions progressively"
       ]
     },
     {
       "priority": 2,
-      "name": "Train first real Miyori Student candidate",
+      "name": "Guided Cloud.ru provisioning",
       "details": [
-        "validate accepted Teacher signals and confirmed Miyori experience",
-        "build train/validation split",
-        "select base open-weight model",
-        "run controlled LoRA/fine-tuning on Cloud.ru GPU",
-        "publish trained artifact to Model Registry/ML Inference",
-        "evaluate against active version and explicitly promote or reject"
+        "turn Student setup into an even simpler guided flow once Cloud.ru provisioning API is integrated",
+        "prefer one-click create/test/use with cost confirmation",
+        "never require the user to understand model runtime terminology"
       ]
     },
     {
       "priority": 3,
-      "name": "Professional streaming chat",
+      "name": "First real Student and learning cycle",
       "details": [
-        "support streaming tokens from ML Inference when runtime supports stream=true",
-        "keep pipeline/status indicators compact",
-        "surface Student fallback/recovery without exposing hidden reasoning",
-        "add message-level memory/teacher activity indicators"
+        "connect a real Cloud.ru Student instance",
+        "collect accepted Teacher feedback",
+        "train candidate with explicit budget confirmation",
+        "evaluate and promote only after user approval"
       ]
     },
     {
       "priority": 4,
-      "name": "Memory and embodiment",
+      "name": "Eyes, ears and hands",
       "details": [
-        "connect a real multilingual embedding model for semantic memory",
-        "Eyes: screen/image/camera adapters",
-        "Ears: microphone/STT",
-        "Voice: TTS",
-        "Hands: sandboxed computer/file tools behind Action Gateway"
+        "add image/screen perception without adding technical panels",
+        "add microphone/STT and TTS behind simple user controls",
+        "add sandboxed computer/file actions behind confirmation when needed"
       ]
     }
   ],
@@ -530,5 +528,24 @@
       "online": "User -> Miyori context/memory/world model -> Miyori Student -> response",
       "learning": "Miyori experience -> Cloud Teacher -> critique/labels -> dataset -> GPU training -> new Miyori Student candidate -> evaluation -> approval -> promote/rollback"
     }
+  },
+  "current_chat": {
+    "role": "main UI",
+    "visible_primary_controls": [
+      "Память",
+      "Диалоги",
+      "поле сообщения"
+    ],
+    "hidden_from_main_ui": [
+      "Brain version",
+      "World Model counters",
+      "skills counters",
+      "Teacher/Training counters",
+      "runtime trace",
+      "context strip",
+      "technical version badges"
+    ],
+    "cloud_setup": "three human-readable steps: Teacher -> Miyori brain -> Training later",
+    "progressive_student_actions": "test first; quality check only after connection; activate only after quality pass; rollback only when available"
   }
 }
