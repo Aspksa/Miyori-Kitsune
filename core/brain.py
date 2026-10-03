@@ -17,6 +17,7 @@ from memory import memory_engine_status
 from model_registry import summary as model_registry_summary
 from neural_runtime import active_runtime, runtime_status
 from skills import registry as skill_registry
+from student_gateway import status as student_status
 from teacher_gateway import review_if_enabled as teacher_review_if_enabled, status as teacher_status
 from world_model import snapshot as world_snapshot
 
@@ -26,7 +27,7 @@ SESSIONS_DIR = BRAIN_DIR / "sessions"
 BRAIN_LOG = BRAIN_DIR / "brain-events.json"
 
 BRAIN_NAME = "Miyori Kitsune"
-BRAIN_VERSION = "0.4.0"
+BRAIN_VERSION = "0.5.0"
 FALLBACK_RUNTIME = InternalPlannerRuntime()
 
 
@@ -164,6 +165,19 @@ def _append_session(session_id: str, role: str, content: str, meta: dict | None 
     _write_json(path, data)
 
 
+def _recent_dialogue(session_id: str, limit: int = 12) -> list[dict]:
+    path = _session_path(session_id)
+    data = _read_json(path, {})
+    messages = data.get("messages", []) if isinstance(data, dict) else []
+    rows = []
+    for item in messages[-max(1, min(int(limit), 30)):]:
+        role = str(item.get("role", ""))
+        content = str(item.get("content", "")).strip()
+        if role in {"user", "assistant"} and content:
+            rows.append({"role": role, "content": content})
+    return rows
+
+
 def status() -> dict:
     models = model_registry_summary()
     body = embodiment_status()
@@ -182,6 +196,7 @@ def status() -> dict:
         "active_model": active_model,
         "models": models,
         "memory_engine": memory_engine_status(),
+        "student": student_status(),
         "teacher": teacher_status(),
         "embodiment": body,
         "identity": get_identity(),
@@ -315,10 +330,24 @@ def think(message: str, session_id: str = "default", project_id: str | None = No
     _append_session(session_id, "user", message, {"project_id": project_id, "task_id": task_id})
     perception = perceive(message, project_id=project_id, task_id=task_id)
     base_context = perception["context"]
+    base_context["conversation_history"] = _recent_dialogue(session_id)
     runtime = active_runtime()
     if not runtime.available():
         runtime = FALLBACK_RUNTIME
     runtime_output = runtime.infer(message, base_context, perception["capabilities"])
+    if (
+        runtime is not FALLBACK_RUNTIME
+        and not str(runtime_output.text or "").strip()
+        and (runtime_output.metadata or {}).get("available") is False
+    ):
+        failed_metadata = dict(runtime_output.metadata or {})
+        runtime = FALLBACK_RUNTIME
+        runtime_output = runtime.infer(message, base_context, perception["capabilities"])
+        runtime_output.metadata = {
+            **(runtime_output.metadata or {}),
+            "fallback_from": failed_metadata.get("runtime"),
+            "fallback_error": failed_metadata.get("error"),
+        }
     plan = _plan(message, project_id=project_id)
     plan["runtime"] = runtime_output.metadata or {}
     action_results = []
@@ -382,6 +411,9 @@ def think(message: str, session_id: str = "default", project_id: str | None = No
         "pipeline": {
             "student_runtime": (runtime_output.metadata or {}).get("runtime", getattr(runtime, "name", "unknown")),
             "memory_retrieval": context.get("memory", {}).get("retrieval"),
+            "student_active": (runtime_output.metadata or {}).get("student", False),
+            "fallback_from": (runtime_output.metadata or {}).get("fallback_from"),
+            "fallback_error": (runtime_output.metadata or {}).get("fallback_error"),
             "teacher_reviewed": bool(isinstance(teacher_feedback, dict) and teacher_feedback.get("id")),
             "teacher_error": teacher_feedback.get("error") if isinstance(teacher_feedback, dict) else None,
         },
