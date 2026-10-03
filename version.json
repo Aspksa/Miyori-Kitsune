@@ -1,9 +1,9 @@
 {
-  "version": "0.13.0",
+  "version": "0.14.0",
   "channel": "stable",
   "repository": "Aspksa/Miyori-Kitsune",
   "components": {
-    "core": "0.13.0",
+    "core": "0.14.0",
     "interface": "0.10.0",
     "updater": "0.4.0",
     "chat": "1.1.0",
@@ -12,9 +12,9 @@
     "settings": "0.3.0",
     "account": "0.5.0",
     "mobile": "0.2.0",
-    "memory": "0.3.0",
+    "memory": "0.4.0",
     "assistant": "0.3.0",
-    "brain": "0.6.0",
+    "brain": "0.7.0",
     "identity": "0.1.0",
     "world_model": "0.1.0",
     "reflection": "0.1.0",
@@ -26,14 +26,18 @@
     "cloudru": "0.1.0",
     "training_data": "0.1.0",
     "model_registry": "0.1.0",
-    "embodiment": "0.1.0"
+    "embodiment": "0.1.0",
+    "embeddings": "0.1.0",
+    "semantic_memory": "0.1.0",
+    "neural_runtime": "0.1.0",
+    "model_evaluation": "0.1.0"
   },
   "dependencies": {
     "chat": {
-      "core": "0.13.0",
-      "memory": "0.3.0",
+      "core": "0.14.0",
+      "memory": "0.4.0",
       "assistant": "0.3.0",
-      "brain": "0.6.0",
+      "brain": "0.7.0",
       "cloudru": "0.1.0"
     },
     "workspace": {
@@ -47,23 +51,25 @@
       "core": "0.4.0"
     },
     "account": {
-      "core": "0.13.0",
+      "core": "0.14.0",
       "cloudru": "0.1.0"
     },
     "mobile": {
       "core": "0.4.0"
     },
     "memory": {
-      "core": "0.7.0"
+      "core": "0.14.0",
+      "embeddings": "0.1.0",
+      "semantic_memory": "0.1.0"
     },
     "assistant": {
       "core": "0.8.0",
       "memory": "0.2.0"
     },
     "brain": {
-      "core": "0.13.0",
+      "core": "0.14.0",
       "assistant": "0.3.0",
-      "memory": "0.3.0",
+      "memory": "0.4.0",
       "workspace": "0.4.0",
       "identity": "0.1.0",
       "world_model": "0.1.0",
@@ -74,7 +80,11 @@
       "cloudru": "0.1.0",
       "training_data": "0.1.0",
       "model_registry": "0.1.0",
-      "embodiment": "0.1.0"
+      "embodiment": "0.1.0",
+      "embeddings": "0.1.0",
+      "semantic_memory": "0.1.0",
+      "neural_runtime": "0.1.0",
+      "model_evaluation": "0.1.0"
     },
     "self_development": {
       "core": "0.9.0",
@@ -95,6 +105,19 @@
       "brain": "0.5.0",
       "learning": "0.1.0",
       "reflection": "0.1.0"
+    },
+    "neural_runtime": {
+      "core": "0.14.0",
+      "model_registry": "0.1.0"
+    },
+    "semantic_memory": {
+      "core": "0.14.0",
+      "embeddings": "0.1.0"
+    },
+    "model_evaluation": {
+      "core": "0.14.0",
+      "neural_runtime": "0.1.0",
+      "model_registry": "0.1.0"
     }
   },
   "mobile_client": {
@@ -105,12 +128,13 @@
     "notes": "Отдельный пакет мобильного клиента будет публиковаться через GitHub Releases."
   },
   "changes": [
-    "Добавлен Model Registry: версии моделей, candidate/testing/approved/active lifecycle, явное подтверждение активации и rollback foundation.",
-    "Память получила importance, confidence, source и relevance retrieval с учётом запроса, давности и важности.",
-    "Добавлен Embodiment Registry: глаза, уши, голос, руки и ноги как отдельные sensor/actuator каналы с адаптерами и политиками доступа.",
-    "Cognitive Loop теперь передаёт текущий запрос в retrieval памяти и включает состояние сенсорных каналов в perception/reflection.",
-    "Self-Development получил строгую state machine; запрещены опасные перескоки стадий, применение всегда требует явного подтверждения.",
-    "Safety Kernel расширен на Brain, Memory, Model Registry и Embodiment.",
-    "Добавлены регрессионные тесты cognitive foundation."
+    "Добавлен Neural Runtime: активная локальная модель может отвечать на обычные сообщения через BrainModelRuntime, а действия остаются под контролем planner + Action Gateway.",
+    "Добавлен локальный llama.cpp adapter для GGUF-моделей; при отсутствии веса или llama-cpp-python Miyori автоматически использует безопасный internal planner.",
+    "Добавлен Embeddings layer: локальные neural embeddings через sentence-transformers при явно настроенной локальной модели и deterministic vector fallback без скачиваний.",
+    "Memory v0.4 использует hybrid retrieval: lexical/importance/confidence/recency + vector similarity; при neural embeddings повышается вес semantic similarity.",
+    "Добавлен persistent vector index data/brain/memory-vectors.json с автоматической синхронизацией по изменениям памяти.",
+    "Добавлен Model Evaluation Harness; оценки сохраняются отдельно и никогда автоматически не продвигают модель в active.",
+    "Добавлены API /api/brain/models, /api/brain/memory/semantic и POST /api/brain/model/evaluate.",
+    "Добавлены изолированные регрессионные тесты neural runtime и vector memory."
   ]
 }
