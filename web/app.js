@@ -22,18 +22,155 @@ document.querySelectorAll("[data-prompt]").forEach(button=>button.addEventListen
 const prompt=document.getElementById("prompt");
 prompt.addEventListener("input",()=>{prompt.style.height="auto";prompt.style.height=Math.min(prompt.scrollHeight,180)+"px";});
 prompt.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();document.getElementById("composer").requestSubmit();}});
-document.getElementById("composer").addEventListener("submit",event=>{
+let chatBusy=false;
+let pendingBrainRequest=null;
+const chatSessionId="web-"+Date.now().toString(36);
+let thinkingTimer=null;
+
+function chatEscape(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]));}
+function chatTime(){return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
+
+function appendChatMessage(role,text,options={}){
+  const feed=document.getElementById("chatFeed");
+  if(!feed)return null;
+  const row=document.createElement("div");
+  row.className="message "+(role==="user"?"user":"miyori")+(options.system?" system-message":"");
+  const icon=role==="user"?"Я":"狐";
+  const name=role==="user"?"Вы":"Miyori Kitsune";
+  const badge=options.badge?'<span>'+chatEscape(options.badge)+'</span>':'<span>'+chatTime()+'</span>';
+  row.innerHTML='<div class="message-icon">'+icon+'</div><div class="message-body"><div class="message-meta"><b>'+name+'</b>'+badge+'</div><p>'+chatEscape(text).replace(/\n/g,"<br>")+'</p>'+(options.extra||"")+'</div>';
+  feed.appendChild(row);
+  feed.scrollTop=feed.scrollHeight;
+  return row;
+}
+
+function setThinking(active,title="Miyori думает…"){
+  const card=document.getElementById("thinkingCard");
+  const button=document.getElementById("sendMessageButton");
+  if(!card)return;
+  clearInterval(thinkingTimer);
+  card.hidden=!active;
+  if(button)button.disabled=active;
+  if(!active)return;
+  document.getElementById("thinkingTitle").textContent=title;
+  const steps=[
+    "Собираю память, проект и текущий контекст",
+    "Сверяю модель мира и доступные навыки",
+    "Формирую план и проверяю разрешённые действия",
+    "Проверяю результат и сохраняю опыт"
+  ];
+  let index=0;
+  document.getElementById("thinkingDetail").textContent=steps[0];
+  thinkingTimer=setInterval(()=>{
+    index=(index+1)%steps.length;
+    document.getElementById("thinkingDetail").textContent=steps[index];
+  },850);
+}
+
+function renderBrainOverview(data){
+  const identity=data.identity||{};
+  const world=data.world_model||{};
+  const skills=data.skills||{};
+  const learning=data.learning||{};
+  const training=data.training||{};
+  const cloud=training.cloudru||{};
+  document.getElementById("brainStatusVersion").textContent="v"+(identity.development_stage||"—").replace("brain-","");
+  document.getElementById("brainWorldStatus").textContent=(world.nodes||0)+" объектов";
+  document.getElementById("brainSkillsStatus").textContent=(skills.enabled||skills.count||0)+" активных";
+  document.getElementById("brainLearningStatus").textContent=(learning.confirmed||0)+" подтверждено";
+  const cloudEl=document.getElementById("brainCloudStatus");
+  cloudEl.textContent=cloud.configured?"подключён":"не настроен";
+  cloudEl.classList.toggle("ok",!!cloud.configured);
+  document.getElementById("brainRuntimeState").textContent=cloud.configured?"LOCAL + CLOUD":"LOCAL";
+}
+
+function brainOverviewText(data){
+  const identity=data.identity||{},world=data.world_model||{},skills=data.skills||{},learning=data.learning||{},reflections=data.reflections||{},development=data.development||{},training=data.training||{},cloud=training.cloudru||{};
+  const latest=training.latest_dataset;
+  return [
+    "Состояние Miyori:",
+    "• стадия развития: "+(identity.development_stage||"—"),
+    "• модель мира: "+(world.nodes||0)+" объектов, "+(world.edges||0)+" связей",
+    "• навыки: "+(skills.enabled||skills.count||0)+" активных",
+    "• обучение: "+(learning.count||0)+" наблюдений, "+(learning.confirmed||0)+" подтверждённых",
+    "• рефлексии: "+(reflections.count||0),
+    "• предложения развития: "+(development.active||0)+" активных",
+    "• Cloud.ru: "+(cloud.configured?"настроен":"не настроен"),
+    "• датасеты: "+(training.datasets||0)+(latest?" · последний: "+latest.records+" примеров":"")
+  ].join("\n");
+}
+
+async function loadBrainOverview(showInChat=false){
+  try{
+    const data=await api("/api/brain/overview");
+    renderBrainOverview(data);
+    if(showInChat)appendChatMessage("assistant",brainOverviewText(data),{badge:"СТАТУС",system:true});
+    return data;
+  }catch(error){
+    ["brainStatusVersion","brainWorldStatus","brainSkillsStatus","brainLearningStatus","brainCloudStatus"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent="недоступно";});
+    if(showInChat)appendChatMessage("assistant","Не удалось получить внутреннее состояние: "+error.message,{badge:"ОШИБКА",system:true});
+  }
+}
+
+function showConfirmation(result,originalMessage){
+  const action=result?.plan?.actions?.[0]?.action||"действие";
+  const extra='<div class="chat-confirm-actions"><button type="button" class="primary" data-brain-confirm>Подтвердить</button><button type="button" class="secondary" data-brain-cancel>Отменить</button></div>';
+  const row=appendChatMessage("assistant",result.reply||"Это действие требует подтверждения.",{badge:"ПОДТВЕРЖДЕНИЕ",extra});
+  pendingBrainRequest={message:originalMessage};
+  row.querySelector("[data-brain-confirm]").addEventListener("click",async()=>{
+    row.querySelectorAll("button").forEach(b=>b.disabled=true);
+    await sendBrainMessage(originalMessage,true,false);
+  });
+  row.querySelector("[data-brain-cancel]").addEventListener("click",()=>{
+    pendingBrainRequest=null;
+    row.querySelector(".chat-confirm-actions").innerHTML='<span class="chat-action-cancelled">Отменено</span>';
+  });
+}
+
+async function sendBrainMessage(value,confirmed=false,echoUser=true){
+  if(chatBusy)return;
+  chatBusy=true;
+  if(echoUser)appendChatMessage("user",value);
+  setThinking(true,confirmed?"Подтверждаю действие…":"Miyori думает…");
+  try{
+    const data=await api("/api/brain/think",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      message:value,
+      session_id:chatSessionId,
+      project_id:activeProjectId||null,
+      confirmed
+    })});
+    appendChatMessage("assistant",data.reply||"Готово.",{badge:(data.intent||"ответ").toUpperCase()});
+    pendingBrainRequest=null;
+    await Promise.all([loadBrainOverview(false),loadWorkspace(activeProjectId),loadMemory(),refreshActiveContext()]);
+  }catch(error){
+    try{
+      const response=await fetch("/api/brain/think",{method:"POST",cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:value,session_id:chatSessionId,project_id:activeProjectId||null,confirmed})});
+      const data=await response.json().catch(()=>({}));
+      if(response.status===409&&data.requires_confirmation)showConfirmation(data,value);
+      else appendChatMessage("assistant",data.error||error.message,{badge:"ОШИБКА",system:true});
+    }catch{
+      appendChatMessage("assistant",error.message,{badge:"ОШИБКА",system:true});
+    }
+  }finally{
+    chatBusy=false;
+    setThinking(false);
+    prompt.focus();
+  }
+}
+
+document.getElementById("composer").addEventListener("submit",async event=>{
   event.preventDefault();
   const value=prompt.value.trim();
-  if(!value)return;
-  const remember=value.match(/^запомни(?:,| что)?\s+(.+)/i);
-  if(remember){
-    document.getElementById("memoryText").value=remember[1];
-    openMemory("remember");
+  if(!value||chatBusy)return;
+  prompt.value="";prompt.style.height="auto";
+  if(/^\/(status|brain)$/i.test(value)||/^(как ты|какой у тебя статус|покажи статус|что у тебя сейчас|состояние системы)[?.!\s]*$/i.test(value)){
+    appendChatMessage("user",value);
+    setThinking(true,"Проверяю своё состояние…");
+    await loadBrainOverview(true);
+    setThinking(false);
     return;
   }
-  prompt.value="";prompt.style.height="auto";
-  alert("Командный шлюз Miyori уже готов. После подключения собственной модели этот запрос будет преобразован в чтение контекста и разрешённые действия над проектами, задачами и памятью.");
+  await sendBrainMessage(value);
 });
 
 async function api(url,options={}){
@@ -411,6 +548,7 @@ document.getElementById("newProjectButton").addEventListener("click",()=>openEnt
 document.getElementById("newTaskButton").addEventListener("click",()=>{refreshProjectSelectors();openEntityModal("taskModal");});
 document.getElementById("projectAddTaskButton").addEventListener("click",()=>{refreshProjectSelectors();document.getElementById("taskProject").value=activeProjectId||"";openEntityModal("taskModal");});
 document.getElementById("refreshContextButton").addEventListener("click",refreshActiveContext);
+document.getElementById("refreshBrainStatusButton").addEventListener("click",()=>loadBrainOverview(false));
 
 document.getElementById("projectForm").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -426,3 +564,4 @@ document.getElementById("taskForm").addEventListener("submit",async e=>{
 
 loadWorkspace();
 refreshActiveContext();
+loadBrainOverview(false);
