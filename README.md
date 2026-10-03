@@ -71,3 +71,36 @@ API:
 - `POST /api/brain/think`
 
 Brain не получает прямой неограниченный доступ к файлам; любые изменения системных сущностей проходят через Action Gateway и журналируются.
+
+
+## Miyori Brain Architecture v0.9
+
+Архитектура мозга разделена на независимые backend-подсистемы и не требует дополнительных элементов интерфейса.
+
+- `core/brain.py` — координатор Brain.
+- `core/cognitive_loop.py` — цикл perception → context → plan → action → outcome → reflection → learning.
+- `core/identity.py` — устойчивая идентичность и стадия развития Miyori.
+- `core/world_model.py` — граф объектов и связей: проекты, задачи, память и их отношения.
+- `core/reflection.py` — рефлексия по итогам действий и ошибок.
+- `core/learning.py` — staged learning: observed → confirmed → retained → applied → reassessed.
+- `core/skills.py` — реестр навыков и статистика их использования.
+- `core/sleep_engine.py` — консолидация накопленного опыта.
+- `core/brain_scheduler.py` — безопасный фоновый запуск консолидации примерно раз в 30 минут.
+- `core/self_development.py` — предложения на собственное развитие.
+- `core/safety_kernel.py` — политика изменений критического ядра.
+- `core/brain_architecture.py` — единый снимок внутреннего состояния архитектуры.
+
+Self-Development не имеет функции бесконтрольного `self_modify()`. Поток развития построен как proposal → sandboxed → tested → approved → applied → rollback. Для критических файлов Safety Kernel требует отдельного подтверждения; прямое self-apply отключено.
+
+World Model хранит не только текст, а узлы и связи между сущностями. Cognitive Loop синхронизирует его из текущего контекста Projects, Tasks и Memory.
+
+Sleep Engine не переписывает код и модель. Он консолидирует world model, рефлексии, learning items и skills и формирует рекомендации для следующего развития.
+
+Служебные API:
+- `GET /api/brain/architecture`
+- `POST /api/brain/sleep`
+- `GET /api/brain/development`
+- `POST /api/brain/development/propose`
+- `POST /api/brain/development/transition`
+
+Эта версия является архитектурным фундаментом. Она не является доказательством сознания или биологической жизни и пока не содержит обученной нейросетевой модели; neural runtime подключается через существующий `BrainModelRuntime`.
