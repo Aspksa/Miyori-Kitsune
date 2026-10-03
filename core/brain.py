@@ -13,7 +13,9 @@ from embodiment import status as embodiment_status
 from entities import get_project, list_projects, list_tasks
 from identity import get_identity
 from learning import observe
+from memory import memory_engine_status
 from model_registry import summary as model_registry_summary
+from neural_runtime import active_runtime, runtime_status
 from skills import registry as skill_registry
 from world_model import snapshot as world_snapshot
 
@@ -23,8 +25,8 @@ SESSIONS_DIR = BRAIN_DIR / "sessions"
 BRAIN_LOG = BRAIN_DIR / "brain-events.json"
 
 BRAIN_NAME = "Miyori Kitsune"
-BRAIN_VERSION = "0.2.0"
-MODEL_RUNTIME = InternalPlannerRuntime()
+BRAIN_VERSION = "0.3.0"
+FALLBACK_RUNTIME = InternalPlannerRuntime()
 
 
 def _now() -> int:
@@ -164,17 +166,21 @@ def _append_session(session_id: str, role: str, content: str, meta: dict | None 
 def status() -> dict:
     models = model_registry_summary()
     body = embodiment_status()
+    runtime = runtime_status()
     active_model = models.get("active", {})
     return {
         "name": BRAIN_NAME,
         "version": BRAIN_VERSION,
         "runtime": "miyori-cognitive-runtime",
-        "model_runtime": MODEL_RUNTIME.name,
-        "model_runtime_version": MODEL_RUNTIME.version,
-        "ready": MODEL_RUNTIME.available(),
+        "model_runtime": runtime.get("name"),
+        "model_runtime_version": runtime.get("version"),
+        "model_runtime_available": runtime.get("available"),
+        "runtime_state": runtime,
+        "ready": True,
         "external_model": active_model.get("runtime") not in {None, "internal"},
         "active_model": active_model,
         "models": models,
+        "memory_engine": memory_engine_status(),
         "embodiment": body,
         "identity": get_identity(),
         "skills": skill_registry(),
@@ -307,7 +313,10 @@ def think(message: str, session_id: str = "default", project_id: str | None = No
     _append_session(session_id, "user", message, {"project_id": project_id, "task_id": task_id})
     perception = perceive(message, project_id=project_id, task_id=task_id)
     base_context = perception["context"]
-    runtime_output = MODEL_RUNTIME.infer(message, base_context, perception["capabilities"])
+    runtime = active_runtime()
+    if not runtime.available():
+        runtime = FALLBACK_RUNTIME
+    runtime_output = runtime.infer(message, base_context, perception["capabilities"])
     plan = _plan(message, project_id=project_id)
     plan["runtime"] = runtime_output.metadata or {}
     action_results = []
@@ -334,7 +343,11 @@ def think(message: str, session_id: str = "default", project_id: str | None = No
                 "brain": status(),
             }
 
-    response = _render(plan, action_results)
+    response = (
+        str(runtime_output.text).strip()
+        if plan.get("intent") == "conversation" and str(runtime_output.text or "").strip()
+        else _render(plan, action_results)
+    )
     context = build_context(project_id=project_id, task_id=task_id, query=message)
     reflection = conclude(perception, plan.get("intent", "unknown"), plan.get("actions", []), "success")
     learning_item = None
