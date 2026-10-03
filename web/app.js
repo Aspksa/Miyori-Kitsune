@@ -31,7 +31,7 @@ async function api(url,options={}){
   return data;
 }
 
-const componentLabels={core:"Ядро",interface:"Интерфейс",updater:"Обновлятор",chat:"Чат",workspace:"Рабочее пространство",home:"Домашнее пространство",settings:"Настройки",account:"Личный кабинет",mobile:"Мобильное приложение"};
+const componentLabels={core:"Ядро",interface:"Интерфейс",updater:"Обновлятор",chat:"Miyori Kitsune",memory:"Память",workspace:"Рабочее пространство",home:"Домашнее пространство",settings:"Настройки",account:"Личный кабинет",mobile:"Мобильное приложение"};
 
 function applyComponentVersions(components={}){
   Object.entries(components).forEach(([name,value])=>{
@@ -238,7 +238,14 @@ function renderMemory(){
     }));
   }
   const items=document.getElementById("memoryItems");
-  if(items)items.innerHTML=memoryState.items.length?memoryState.items.map(item=>'<div class="memory-item"><div><span>'+memEsc(memoryLabels[item.category]||item.category)+'</span><p>'+memEsc(item.text)+'</p></div></div>').join(""):'<p class="empty-state">Память пока пуста.</p>';
+  if(items){
+    items.innerHTML=memoryState.items.length?memoryState.items.map(item=>'<div class="memory-item"><div><span>'+memEsc(memoryLabels[item.category]||item.category)+'</span><p>'+memEsc(item.text)+'</p></div><button type="button" data-memory-delete="'+item.id+'" title="Удалить">×</button></div>').join(""):'<p class="empty-state">Память пока пуста.</p>';
+    items.querySelectorAll("[data-memory-delete]").forEach(button=>button.addEventListener("click",async()=>{
+      const d=await api("/api/memory/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:button.dataset.memoryDelete})});
+      memoryState={...d,active_context:{count:activeMemoryCount(d)}};
+      renderMemory();
+    }));
+  }
 }
 async function loadMemory(){try{memoryState=await api("/api/memory");renderMemory();}catch(e){document.getElementById("memoryContextStatus").textContent=e.message;}}
 function openMemory(cat){document.getElementById("memoryModal").hidden=false;if(cat)document.getElementById("memoryCategory").value=cat;document.getElementById("memoryText").focus();}
