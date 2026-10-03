@@ -59,77 +59,51 @@
       </header>
 
       <section class="page active" id="page-chat">
-        <div class="assistant-shell">
-          <section class="assistant-overview">
-            <div class="assistant-heading">
-              <div class="assistant-mark">狐</div>
-              <div>
-                <p class="eyebrow">PERSONAL ASSISTANT</p>
-                <h2>Miyori Kitsune</h2>
-                <p>Личная помощница для диалогов, задач, планирования и работы с вашим контекстом.</p>
-              </div>
+        <section class="assistant-chat simple-chat">
+          <div class="chat-header chat-header-pro simple-chat-header">
+            <div class="chat-identity">
+              <span class="miyori-mini-avatar">狐</span>
+              <div><b>Miyori</b><small id="chatSessionLabel">Готова к разговору</small></div>
             </div>
-
-            <div class="memory-control"><div class="memory-control-head"><div><p class="eyebrow">MEMORY</p><b>Память Miyori</b><small id="memoryContextStatus">Загрузка контекста…</small></div><button class="secondary" id="openMemoryButton" type="button">Управлять</button></div><div class="memory-chips" id="memoryChips"></div></div><div class="assistant-cards">
-              <button class="assistant-card" data-memory-category="projects">
-                <span>▦</span><div><b>Проекты</b><small>Контекст активных проектов</small></div><i>＋</i>
-              </button>
-              <button class="assistant-card" data-memory-category="work">
-                <span>◆</span><div><b>Работа</b><small>Рабочие правила и контекст</small></div><i>＋</i>
-              </button>
-              <button class="assistant-card" data-memory-category="tasks">
-                <span>✓</span><div><b>Задачи</b><small>То, что нужно выполнить</small></div><i>＋</i>
-              </button>
-              <button class="assistant-card" data-memory-category="remember">
-                <span>◇</span><div><b>Запомнить</b><small>Важные заметки для Miyori</small></div><i>＋</i>
-              </button>
+            <div class="chat-header-actions">
+              <button type="button" class="simple-action" id="openMemoryButton">Память</button>
+              <button type="button" class="simple-action" id="chatHistoryButton">Диалоги</button>
             </div>
-          </section>
+          </div>
 
-          <section class="assistant-chat">
-            <div class="chat-header chat-header-pro">
-              <div class="chat-identity"><span class="live-dot"></span><div><b>Чат с Miyori</b><small id="chatSessionLabel">Личная сессия · готова</small></div></div>
-              <div class="chat-header-actions"><button type="button" class="chat-history-button" id="chatHistoryButton">Диалоги</button><span class="assistant-state" id="brainRuntimeState">LOCAL</span><button type="button" class="chat-icon-button" id="refreshBrainStatusButton" title="Обновить состояние">↻</button></div>
+          <div class="chat-history-panel" id="chatHistoryPanel" hidden>
+            <div class="chat-history-head"><div><b>Диалоги</b><small>Твои прошлые разговоры</small></div><button type="button" id="newChatButton">＋ Новый</button></div>
+            <div class="chat-history-list" id="chatHistoryList"><p class="empty-state">Загрузка…</p></div>
+          </div>
+
+          <div class="chat-feed simple-chat-feed" id="chatFeed">
+            <div class="message miyori">
+              <div class="message-icon">狐</div>
+              <div class="message-body"><div class="message-meta"><b>Miyori</b></div><p>Привет. Я рядом. Напиши, что хочешь сделать или о чём поговорить.</p></div>
             </div>
+          </div>
 
-            <div class="brain-status-strip" id="brainStatusStrip">
-              <div class="brain-status-item"><span>МОЗГ</span><b id="brainStatusVersion">Загрузка…</b></div>
-              <div class="brain-status-item"><span>ПАМЯТЬ</span><b id="brainMemoryStatus">—</b></div>
-              <div class="brain-status-item"><span>МИР</span><b id="brainWorldStatus">—</b></div>
-              <div class="brain-status-item"><span>НАВЫКИ</span><b id="brainSkillsStatus">—</b></div>
-              <div class="brain-status-item"><span>УЧИТЕЛЬ</span><b id="brainTeacherStatus">—</b></div>
-              <div class="brain-status-item"><span>ОБУЧЕНИЕ</span><b id="brainLearningStatus">—</b></div>
+          <div class="thinking-card simple-thinking" id="thinkingCard" hidden>
+            <div class="thinking-orb"><i></i><i></i><i></i></div>
+            <div><b id="thinkingTitle">Miyori думает…</b><small id="thinkingDetail">Готовлю ответ</small></div>
+          </div>
+
+          <form class="composer composer-pro simple-composer" id="composer">
+            <textarea id="prompt" rows="1" placeholder="Напиши Miyori…"></textarea>
+            <div class="composer-footer"><span class="simple-hint">Enter — отправить</span><button type="submit" id="sendMessageButton" aria-label="Отправить">↑</button></div>
+          </form>
+
+          <div class="technical-state" hidden>
+            <span id="brainRuntimeState"></span>
+            <button type="button" id="refreshBrainStatusButton"></button>
+            <div id="brainStatusStrip">
+              <b id="brainStatusVersion"></b><b id="brainMemoryStatus"></b><b id="brainWorldStatus"></b>
+              <b id="brainSkillsStatus"></b><b id="brainTeacherStatus"></b><b id="brainLearningStatus"></b>
             </div>
-
-            <div class="context-strip">
-              <span>Контекст:</span>
-              <div id="activeContextChips"><i>Общий контекст</i></div>
-              <button type="button" id="refreshContextButton" title="Обновить контекст">↻</button>
-            </div>
-
-            <div class="chat-history-panel" id="chatHistoryPanel" hidden>
-              <div class="chat-history-head"><div><b>Диалоги</b><small>История сохраняется локально</small></div><button type="button" id="newChatButton">＋ Новый</button></div>
-              <div class="chat-history-list" id="chatHistoryList"><p class="empty-state">Загрузка диалогов…</p></div>
-            </div>
-
-            <div class="chat-feed" id="chatFeed">
-              <div class="message miyori">
-                <div class="message-icon">狐</div>
-                <div class="message-body"><div class="message-meta"><b>Miyori Kitsune</b><span>система</span></div><p>Я готова. Можешь спрашивать о моём состоянии, проектах, задачах, памяти и развитии или сразу дать мне задачу.</p></div>
-              </div>
-            </div>
-
-            <div class="thinking-card" id="thinkingCard" hidden>
-              <div class="thinking-orb"><i></i><i></i><i></i></div>
-              <div><b id="thinkingTitle">Miyori думает…</b><small id="thinkingDetail">Собираю контекст и проверяю внутреннее состояние</small></div>
-            </div>
-
-            <form class="composer composer-pro" id="composer">
-              <textarea id="prompt" rows="1" placeholder="Напиши Miyori сообщение или команду…"></textarea>
-              <div class="composer-footer"><div class="composer-hints"><span>Enter — отправить</span><span>Shift+Enter — новая строка</span><span>/status — состояние</span></div><button type="submit" id="sendMessageButton" aria-label="Отправить">↑</button></div>
-            </form>
-          </section>
-        </div>
+            <span id="memoryContextStatus"></span><div id="memoryChips"></div>
+            <div id="activeContextChips"></div><button type="button" id="refreshContextButton"></button>
+          </div>
+        </section>
       </section>
 
       <div class="memory-modal" id="memoryModal" hidden><div class="memory-modal-card"><div class="memory-modal-head"><div><p class="eyebrow">MIYORI MEMORY</p><h3>Память помощницы</h3><p>Вы сами решаете, что хранить и какие категории Miyori может использовать.</p></div><button id="closeMemoryButton" type="button">×</button></div><form id="memoryForm" class="memory-form"><select id="memoryCategory"><option value="projects">Проекты</option><option value="work">Работа</option><option value="tasks">Задачи</option><option value="remember">Запомнить</option><option value="preferences">Предпочтения</option><option value="people">Люди</option><option value="facts">Важные факты</option></select><select id="memoryLink"><option value="">Общая память</option></select><textarea id="memoryText" rows="3" maxlength="2000" placeholder="Что Miyori должна помнить?"></textarea><button class="primary" type="submit">Сохранить в память</button></form><div class="memory-category-list" id="memoryCategoryList"></div><div class="memory-items" id="memoryItems"><p class="empty-state">Память пока пуста.</p></div></div></div>
@@ -200,36 +174,67 @@
             <button class="primary" id="createPairingButton">Создать код сопряжения</button>
           </article>
 
-          <article class="account-card cloudru-card">
-            <div class="card-title"><div><small>MIYORI / CLOUD.RU</small><b>Учитель и вычислительная среда</b></div><span class="account-status" id="cloudruConnectionState">Не настроено</span></div>
-            <p class="cloudru-note">Cloud.ru не является Miyori. Foundation Models работает как Cloud Teacher, а GPU Training используется для обучения новых версий Miyori Student. Секреты хранятся локально и не попадают в GitHub.</p>
-            <form id="cloudruForm" class="profile-form">
-              <div class="cloud-section-title"><span>TEACHER / FOUNDATION MODELS</span><b>Cloud Teacher</b><small>Критика, разметка и обучающие сигналы. Не заменяет ответы Miyori.</small></div>
-              <label class="cloud-wide">Foundation Models API Key<input id="cloudruFoundationApiKey" type="password" autocomplete="new-password" placeholder="Введите API Key или оставьте пустым, если уже сохранён"></label>
-              <label>Teacher model<input id="cloudruTeacherModel" autocomplete="off" value="openai/gpt-oss-120b" placeholder="openai/gpt-oss-120b"></label>
-              <div class="teacher-toggle-stack">
-                <div class="toggle-row"><span><b>Cloud Teacher включён</b><small>Разрешает ручную проверку и обучение</small></span><input type="checkbox" id="cloudruTeacherEnabled" checked></div>
-                <div class="toggle-row"><span><b>Автопроверка ответов</b><small>Платный запрос Teacher после каждого ответа Miyori</small></span><input type="checkbox" id="cloudruTeacherAutoReview"></div>
+          <article class="account-card cloudru-card cloud-simple-card">
+            <div class="card-title">
+              <div><small>CLOUD.RU</small><b>Мозг и учитель Miyori</b></div>
+              <span class="account-status" id="cloudruConnectionState">Не подключено</span>
+            </div>
+            <p class="cloudru-note">Здесь нужно только подключить учителя и облачный мозг Miyori. Всё остальное можно настроить позже.</p>
+
+            <form id="cloudruForm" class="cloud-simple-form">
+              <section class="cloud-step">
+                <div class="cloud-step-number">1</div>
+                <div class="cloud-step-main">
+                  <div class="cloud-step-head"><div><b>Подключить учителя</b><small>Учитель помогает Miyori учиться и проверять ошибки.</small></div><span id="teacherSimpleState">Не подключён</span></div>
+                  <label>Ключ учителя<input id="cloudruFoundationApiKey" type="password" autocomplete="new-password" placeholder="Вставь API Key из Cloud.ru"></label>
+                  <div class="cloud-step-actions"><button type="button" class="primary" id="testCloudTeacherButton">Подключить учителя</button></div>
+                </div>
+              </section>
+
+              <section class="cloud-step">
+                <div class="cloud-step-number">2</div>
+                <div class="cloud-step-main">
+                  <div class="cloud-step-head"><div><b>Подключить мозг Miyori</b><small>Это облачная модель, которая будет отвечать тебе от имени Miyori.</small></div><span id="cloudruStudentState">Не подключён</span></div>
+                  <label>Адрес мозга<input id="cloudruStudentEndpoint" autocomplete="off" placeholder="Скопируй адрес из Cloud.ru ML Inference"></label>
+                  <label>Ключ доступа<input id="cloudruStudentApiKey" type="password" autocomplete="new-password" placeholder="Вставь API Token"></label>
+                  <div class="cloud-step-actions">
+                    <button type="button" class="primary" id="testCloudStudentButton">Проверить мозг</button>
+                    <button type="button" class="secondary" id="evaluateCloudStudentButton">Проверить качество</button>
+                    <button type="button" class="secondary" id="activateCloudStudentButton">Использовать</button>
+                    <button type="button" class="secondary danger-soft" id="rollbackCloudStudentButton">Вернуть прошлый</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="cloud-step cloud-step-muted">
+                <div class="cloud-step-number">3</div>
+                <div class="cloud-step-main">
+                  <div class="cloud-step-head"><div><b>Обучение Miyori</b><small>Пока можно не трогать. Вернёмся сюда, когда накопим достаточно опыта для обучения.</small></div><span>Позже</span></div>
+                </div>
+              </section>
+
+              <details class="cloud-advanced">
+                <summary>Дополнительные настройки</summary>
+                <div class="cloud-advanced-grid">
+                  <label>Модель учителя<input id="cloudruTeacherModel" autocomplete="off" value="openai/gpt-oss-120b"></label>
+                  <label>Модель Miyori<input id="cloudruStudentModel" autocomplete="off" value="Qwen/Qwen3-8B"></label>
+                  <label>Версия мозга<input id="cloudruStudentVersion" autocomplete="off" value="0.1.0"></label>
+                  <label>Регион<input id="cloudruRegion" autocomplete="off" value="SR006"></label>
+                  <div class="toggle-row"><span><b>Учитель включён</b><small>Разрешить проверки</small></span><input type="checkbox" id="cloudruTeacherEnabled" checked></div>
+                  <div class="toggle-row"><span><b>Проверять ответы автоматически</b><small>Может расходовать платные токены</small></span><input type="checkbox" id="cloudruTeacherAutoReview"></div>
+                  <div class="toggle-row"><span><b>Облачный мозг включён</b><small>Использовать после проверки</small></span><input type="checkbox" id="cloudruStudentEnabled"></div>
+                  <label>Training Key ID<input id="cloudruKeyId" autocomplete="off"></label>
+                  <label>Training Key Secret<input id="cloudruKeySecret" type="password" autocomplete="new-password"></label>
+                  <label>Training Workspace ID<input id="cloudruWorkspaceId" autocomplete="off"></label>
+                  <label>Training x-api-key<input id="cloudruApiKey" type="password" autocomplete="new-password"></label>
+                  <button type="button" class="secondary" id="testCloudruButton">Проверить обучение</button>
+                </div>
+              </details>
+
+              <div class="account-actions cloud-save-line">
+                <button type="submit" class="secondary">Сохранить настройки</button>
+                <span id="cloudruSaveStatus"></span>
               </div>
-              <div class="cloud-section-title"><span>STUDENT / ML INFERENCE</span><b>Miyori Student</b><small>Отдельный облачный мозг самой Miyori. Позже здесь будут работать её дообученные веса/LoRA, а Teacher останется только учителем.</small></div>
-              <label class="cloud-wide">ML Inference endpoint<input id="cloudruStudentEndpoint" autocomplete="off" placeholder="https://...modelrun.inference.cloud.ru/v1"></label>
-              <label>Miyori Student model<input id="cloudruStudentModel" autocomplete="off" value="Qwen/Qwen3-8B" placeholder="Qwen/Qwen3-8B"></label>
-              <label>Версия Student<input id="cloudruStudentVersion" autocomplete="off" value="0.1.0" placeholder="0.1.0"></label>
-              <label class="cloud-wide">ML Inference API Token<input id="cloudruStudentApiKey" type="password" autocomplete="new-password" placeholder="Введите API Token или оставьте пустым, если уже сохранён"></label>
-              <div class="teacher-toggle-stack">
-                <div class="toggle-row"><span><b>Miyori Student включён</b><small>Разрешает Brain использовать активную Student-модель</small></span><input type="checkbox" id="cloudruStudentEnabled"></div>
-              </div>
-              <div class="student-lifecycle">
-                <div><span>Состояние Student</span><b id="cloudruStudentState">Не настроен</b></div>
-                <div class="student-actions"><button type="button" class="secondary" id="testCloudStudentButton">Проверить Student</button><button type="button" class="secondary" id="evaluateCloudStudentButton">Оценить candidate</button><button type="button" class="primary" id="activateCloudStudentButton">Активировать</button><button type="button" class="secondary danger-soft" id="rollbackCloudStudentButton">Откатить мозг</button></div>
-              </div>
-              <div class="cloud-section-title"><span>GPU TRAINING</span><b>Обучение Miyori Student</b><small>Эти поля нужны для training jobs; можно оставить пустыми, пока обучение не запускаем.</small></div>
-              <label>Key ID<input id="cloudruKeyId" autocomplete="off" placeholder="Key ID"></label>
-              <label>Key Secret<input id="cloudruKeySecret" type="password" autocomplete="new-password" placeholder="Введите или оставьте пустым, если уже сохранён"></label>
-              <label>Workspace ID<input id="cloudruWorkspaceId" autocomplete="off" placeholder="x-workspace-id"></label>
-              <label>x-api-key<input id="cloudruApiKey" type="password" autocomplete="new-password" placeholder="Введите или оставьте пустым, если уже сохранён"></label>
-              <label>Регион<input id="cloudruRegion" autocomplete="off" value="SR006" placeholder="SR006"></label>
-              <div class="account-actions"><button type="submit" class="primary">Сохранить Cloud.ru</button><button type="button" class="secondary" id="testCloudTeacherButton">Проверить Teacher</button><button type="button" class="secondary" id="testCloudruButton">Проверить GPU</button><span id="cloudruSaveStatus"></span></div>
             </form>
           </article>
 
