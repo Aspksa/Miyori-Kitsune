@@ -15,6 +15,23 @@ def current_model() -> dict | None:
     return next((item for item in list_models() if item.get("id") == wanted), None)
 
 
+def validate_configuration_change(payload: dict) -> None:
+    item = current_model()
+    if not item or item.get("stage") != "active":
+        return
+    cloud = cloud_student_status()
+    incoming_version = str(payload.get("student_version", cloud.get("version", "0.1.0")) or "0.1.0").strip()
+    if incoming_version != str(item.get("version")):
+        return
+    metadata = item.get("metadata", {}) if isinstance(item.get("metadata"), dict) else {}
+    incoming_endpoint = str(payload.get("student_endpoint", cloud.get("endpoint", "")) or "").strip().rstrip("/")
+    current_endpoint = str(metadata.get("endpoint") or "").strip().rstrip("/")
+    incoming_model = str(payload.get("student_model", cloud.get("model", "")) or "").strip()
+    current_model_name = str(metadata.get("model_name") or "").strip()
+    if incoming_endpoint != current_endpoint or incoming_model != current_model_name:
+        raise ValueError("Активную версию Miyori Student нельзя заменить без новой версии. Увеличьте Student version, затем пройдите evaluation и активацию.")
+
+
 def register_current() -> dict:
     cloud = cloud_student_status()
     if not cloud.get("configured"):
