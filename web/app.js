@@ -1,4 +1,4 @@
-const pages={chat:"Чат с Miyori Kitsune",workspace:"Рабочее пространство",home:"Домашнее пространство",settings:"Настройки",updates:"Обновление проекта",account:"Личный кабинет",mobile:"Мобильное приложение"};
+const pages={chat:"Miyori Kitsune",workspace:"Рабочее пространство",home:"Домашнее пространство",settings:"Настройки",updates:"Обновление проекта",account:"Личный кабинет",mobile:"Мобильное приложение"};
 const sidebar=document.getElementById("sidebar");
 const scrim=document.getElementById("mobileScrim");
 const title=document.getElementById("pageTitle");
@@ -22,7 +22,7 @@ document.querySelectorAll("[data-prompt]").forEach(button=>button.addEventListen
 const prompt=document.getElementById("prompt");
 prompt.addEventListener("input",()=>{prompt.style.height="auto";prompt.style.height=Math.min(prompt.scrollHeight,180)+"px";});
 prompt.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();document.getElementById("composer").requestSubmit();}});
-document.getElementById("composer").addEventListener("submit",event=>{event.preventDefault();if(!prompt.value.trim())return;prompt.value="";prompt.style.height="auto";alert("Оболочка чата готова. Следующий этап — подключение AI-модели и памяти.");});
+document.getElementById("composer").addEventListener("submit",event=>{event.preventDefault();if(!prompt.value.trim())return;prompt.value="";prompt.style.height="auto";alert("Miyori готова как интерфейс личной помощницы. Следующий этап — подключение AI-модели, памяти и инструментов.");});
 
 async function api(url,options={}){
   const response=await fetch(url,{cache:"no-store",...options});

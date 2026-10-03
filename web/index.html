@@ -25,7 +25,7 @@
 
       <div class="nav-label">Пространства</div>
       <nav class="nav" aria-label="Основное меню">
-        <button class="nav-item active" data-page="chat"><span class="nav-icon">✦</span><b>Чат с Miyori Kitsune</b><span class="nav-hint" data-version="chat">v—</span></button>
+        <button class="nav-item active" data-page="chat"><span class="nav-icon">✦</span><b>Miyori Kitsune</b><span class="nav-hint" data-version="chat">v—</span></button>
         <button class="nav-item" data-page="workspace"><span class="nav-icon">▦</span><b>Рабочее пространство</b><span class="nav-hint" data-version="workspace">v—</span></button>
         <button class="nav-item" data-page="home"><span class="nav-icon">⌂</span><b>Домашнее пространство</b><span class="nav-hint" data-version="home">v—</span></button>
         <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><b>Настройки</b><span class="nav-hint" data-version="settings">v—</span></button>
@@ -53,31 +53,53 @@
       <header class="topbar">
         <div class="topbar-left">
           <button class="menu-button" id="menuButton" aria-label="Открыть меню">☰</button>
-          <div><p class="eyebrow">MIYORI / CORE</p><h1 id="pageTitle">Чат с Miyori Kitsune</h1></div>
+          <div><p class="eyebrow">MIYORI / PERSONAL ASSISTANT</p><h1 id="pageTitle">Miyori Kitsune</h1></div>
         </div>
         <div class="top-actions"><span class="portable-badge"><i></i> PORTABLE</span><button class="top-profile nav-item" data-page="account">AK</button></div>
       </header>
 
       <section class="page active" id="page-chat">
-        <div class="chat-layout">
-          <div class="hero">
-            <div class="hero-badge">✦ Локальное ядро активно</div>
-            <h2>Ваше пространство<br><span>для идей и работы.</span></h2>
-            <p>Miyori Kitsune объединяет разговор, проекты и персональную среду в одном локальном интерфейсе.</p>
-            <div class="quick-actions">
-              <button type="button" data-prompt="Помоги спланировать новый проект">Новый проект <span>↗</span></button>
-              <button type="button" data-prompt="Помоги разобрать мои задачи">Разобрать задачи <span>↗</span></button>
-              <button type="button" data-page="workspace">Открыть пространство <span>↗</span></button>
+        <div class="assistant-shell">
+          <section class="assistant-overview">
+            <div class="assistant-heading">
+              <div class="assistant-mark">狐</div>
+              <div>
+                <p class="eyebrow">PERSONAL ASSISTANT</p>
+                <h2>Miyori Kitsune</h2>
+                <p>Личная помощница для диалогов, задач, планирования и работы с вашим контекстом.</p>
+              </div>
             </div>
-          </div>
-          <div class="chat-panel">
-            <div class="chat-header"><div><span class="live-dot"></span><b>Miyori Kitsune</b></div><small>Локальная сессия</small></div>
-            <div class="message miyori"><div class="message-icon">狐</div><div><b>Miyori Kitsune</b><p>Ядро работает локально. Следующим модулем можно подключить AI-модель, память и инструменты без изменения общей оболочки.</p></div></div>
+
+            <div class="assistant-cards">
+              <button class="assistant-card" data-prompt="Помоги мне спланировать сегодняшний день">
+                <span>◷</span><div><b>Сегодня</b><small>Планы и приоритеты</small></div><i>↗</i>
+              </button>
+              <button class="assistant-card" data-prompt="Покажи и помоги разобрать мои текущие задачи">
+                <span>✓</span><div><b>Мои задачи</b><small>Разобрать и выполнить</small></div><i>↗</i>
+              </button>
+              <button class="assistant-card" data-prompt="Помоги продолжить работу над моими проектами">
+                <span>▦</span><div><b>Рабочий контекст</b><small>Проекты и материалы</small></div><i>↗</i>
+              </button>
+              <button class="assistant-card" data-prompt="Что мне сейчас важно не забыть?">
+                <span>◇</span><div><b>Напоминания</b><small>Важное и предстоящее</small></div><i>↗</i>
+              </button>
+            </div>
+          </section>
+
+          <section class="assistant-chat">
+            <div class="chat-header">
+              <div><span class="live-dot"></span><div><b>Чат с Miyori</b><small>Личная сессия</small></div></div>
+              <span class="assistant-state">LOCAL</span>
+            </div>
+            <div class="message miyori">
+              <div class="message-icon">狐</div>
+              <div><b>Miyori Kitsune</b><p>Я рядом. Здесь можно разговаривать со мной, разбирать задачи, планировать дела и постепенно подключать память, инструменты и рабочие пространства.</p></div>
+            </div>
             <form class="composer" id="composer">
-              <textarea id="prompt" rows="1" placeholder="Напишите Miyori Kitsune…"></textarea>
-              <div class="composer-footer"><span>Enter — отправить</span><button type="submit">↑</button></div>
+              <textarea id="prompt" rows="1" placeholder="Спросите Miyori или дайте задачу…"></textarea>
+              <div class="composer-footer"><span>Enter — отправить · Shift+Enter — новая строка</span><button type="submit">↑</button></div>
             </form>
-          </div>
+          </section>
         </div>
       </section>
 
