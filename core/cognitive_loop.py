@@ -4,12 +4,14 @@ import time
 import uuid
 
 from assistant_gateway import build_context, capability_manifest
+from embodiment import perception_manifest
 from reflection import reflect
 from skills import record_use
 from world_model import sync_from_context
 
+
 def perceive(message: str, project_id=None, task_id=None):
-    context = build_context(project_id=project_id, task_id=task_id)
+    context = build_context(project_id=project_id, task_id=task_id, query=message)
     sync_from_context(context)
     return {
         "id": "perception_" + uuid.uuid4().hex[:12],
@@ -17,15 +19,13 @@ def perceive(message: str, project_id=None, task_id=None):
         "message": message,
         "context": context,
         "capabilities": capability_manifest(),
+        "senses": perception_manifest(),
     }
+
 
 def conclude(perception: dict, intent: str, actions: list[dict], outcome: str, errors: list[str] | None = None):
     for action in actions:
-        skill = {
-            "project.": "projects.manage",
-            "task.": "tasks.manage",
-            "memory.": "memory.manage",
-        }
+        skill = {"project.": "projects.manage", "task.": "tasks.manage", "memory.": "memory.manage"}
         action_name = action.get("action", "")
         skill_id = next((value for prefix, value in skill.items() if action_name.startswith(prefix)), "context.resolve")
         record_use(skill_id, success=outcome == "success")
@@ -35,4 +35,6 @@ def conclude(perception: dict, intent: str, actions: list[dict], outcome: str, e
         "actions": actions,
         "outcome": outcome,
         "errors": errors or [],
+        "memory_retrieval": perception.get("context", {}).get("memory", {}).get("retrieval"),
+        "sense_channels": list(perception.get("senses", {}).get("channels", {}).keys()),
     })
