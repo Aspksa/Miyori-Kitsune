@@ -15,9 +15,44 @@
 
 Miyori Kitsune — личная AI-система пользователя, которая постепенно учится и развивается: накапливает память, опыт, навыки, модель мира, историю решений, рефлексии и собственные версии модели.
 
-Cloud.ru — только вычислительная инфраструктура для тяжёлого GPU-обучения. Он не заменяет личность/память/архитектуру Miyori.
+Cloud.ru — **учитель Miyori и облачная вычислительная среда**, а не сама Miyori. Сильная готовая модель Cloud.ru должна использоваться для критики, объяснений, разметки, генерации тренировочных примеров, оценки и GPU-обучения. Она не должна постоянно отвечать пользователю вместо собственного Miyori Student.
 
 Пользователь хочет писать и получать объяснения **по-русски**.
+
+## Ключевое решение — Teacher–Student Architecture
+
+Пользователь подтвердил целевую архитектуру:
+
+- **Miyori Kitsune** — собственная личная AI пользователя.
+- У Miyori должны быть собственные: личность, память, World Model, навыки, история развития, рефлексии и версии модели/весов.
+- **Miyori Student** — основной развиваемый мозг Miyori.
+- **Cloud Teacher** — внешний сильный учитель, а не основной интеллект продукта.
+- Локальная модель **не обязательна**. Miyori Student может храниться, запускаться и обучаться в облаке.
+- Teacher не должен по умолчанию перехватывать обычный пользовательский чат и создавать иллюзию, что чужая модель и есть Miyori.
+
+Целевой online flow:
+
+`User → Miyori Memory/World Model/Skills → Miyori Student → Response`
+
+Целевой learning flow:
+
+`Miyori experience → Cloud Teacher → critique/labels → validated dataset → GPU training → Miyori Student candidate → evaluation → explicit approval → promote/rollback`
+
+Cloud Teacher может:
+- проверять и критиковать ответы Miyori;
+- объяснять ошибки;
+- размечать опыт;
+- создавать supervised examples и preference pairs;
+- помогать очищать training data;
+- оценивать candidate-модели;
+- давать teaching signals;
+- использовать Cloud.ru GPU для обучения.
+
+Cloud Teacher **не должен**:
+- заменять Miyori Student как постоянный основной ответчик;
+- автоматически менять личность/память Miyori;
+- самостоятельно активировать новую модель;
+- запускать платное GPU-обучение без явного подтверждения пользователя.
 
 ## UI-принцип
 
@@ -188,15 +223,17 @@ Chat v1.1 — основной UI.
 
 ## Что делать дальше
 
-Наиболее логичный следующий этап — **первая реальная локальная модель Miyori**:
+Наиболее логичный следующий этап — **Teacher–Student orchestration в Cloud.ru**:
 
-1. Выбрать компактную open-weight GGUF модель с хорошим русским/мультиязычным качеством.
-2. Хранить веса локально в `data/models/`; не коммитить их в Git.
-3. Зарегистрировать модель как candidate с runtime `llama_cpp`.
-4. Запустить evaluation harness.
-5. Только после проверки и явного подтверждения перевести candidate в active.
-6. Затем подключить локальную neural embedding model и сравнить semantic retrieval.
-7. После этого строить Cloud.ru fine-tuning lifecycle с estimate → budget → confirm → train → evaluate → approve → promote/rollback.
+1. Разделить runtime на `Miyori Student` и `Cloud Teacher`.
+2. Сделать отдельный Teacher Gateway для critique/label/evaluate, не для постоянного пользовательского чата.
+3. Выбрать облачно исполняемую базовую модель для Miyori Student.
+4. Добавить cloud Student inference runtime.
+5. Сохранять teacher critique и labels отдельно от обычной памяти.
+6. Собирать validated training dataset.
+7. Затем реализовать lifecycle:
+   `experience → teacher critique → dataset → train candidate → evaluate → explicit approval → promote/rollback`.
+8. Платный GPU job никогда не запускать автоматически.
 
 Перед новым изменением сначала прочитать:
 - `docs/PROJECT_STATE.json`
