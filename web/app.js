@@ -138,8 +138,8 @@ function appendChatMessage(role,text,options={}){
   if(!feed)return null;
   const row=document.createElement("div");
   row.className="message "+(role==="user"?"user":"miyori")+(options.system?" system-message":"");
-  const icon=role==="user"?"Я":"狐";
-  const name=role==="user"?"Вы":"Miyori Kitsune";
+  const icon=options.icon||(role==="user"?"Я":"狐");
+  const name=options.name||(role==="user"?"Вы":"Miyori Kitsune");
   const badge=options.badge?'<span>'+chatEscape(options.badge)+'</span>':'<span>'+chatTime()+'</span>';
   row.innerHTML='<div class="message-icon">'+icon+'</div><div class="message-body"><div class="message-meta"><b>'+name+'</b>'+badge+'</div><p>'+chatEscape(text).replace(/\n/g,"<br>")+'</p>'+(options.extra||"")+'</div>';
   feed.appendChild(row);
@@ -220,6 +220,46 @@ async function loadBrainOverview(showInChat=false){
   }
 }
 
+function showTeacherFeedback(item){
+  const review=item?.feedback||{};
+  const corrections=Array.isArray(review.corrections)?review.corrections.filter(Boolean).slice(0,4):[];
+  let text=review.summary||"Cloud Teacher завершил проверку.";
+  if(corrections.length)text+="\n\nИсправления:\n• "+corrections.join("\n• ");
+  const extra=item?.id?'<div class="teacher-feedback-actions"><button type="button" class="primary" data-teacher-accept>В обучение</button><button type="button" class="secondary" data-teacher-reject>Не использовать</button></div>':"";
+  const row=appendChatMessage("assistant",text,{badge:"TEACHER",system:true,name:"Cloud Teacher",icon:"T",extra});
+  if(!item?.id||!row)return;
+  const mark=async accepted=>{
+    row.querySelectorAll("button").forEach(b=>b.disabled=true);
+    try{
+      await api("/api/brain/teacher/feedback/mark",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id,accepted_for_training:accepted})});
+      row.querySelector(".teacher-feedback-actions").innerHTML='<span class="chat-action-cancelled">'+(accepted?"Принято в учебные данные":"Не используется для обучения")+'</span>';
+      await loadBrainOverview(false);
+    }catch(error){
+      row.querySelector(".teacher-feedback-actions").innerHTML='<span class="chat-action-cancelled">'+chatEscape(error.message)+'</span>';
+    }
+  };
+  row.querySelector("[data-teacher-accept]").addEventListener("click",()=>mark(true));
+  row.querySelector("[data-teacher-reject]").addEventListener("click",()=>mark(false));
+}
+
+async function requestTeacherReview(message,studentReply,button){
+  if(button){button.disabled=true;button.textContent="Teacher проверяет…";}
+  try{
+    const data=await api("/api/brain/teacher/review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      message,
+      student_reply:studentReply,
+      session_id:chatSessionId||"default",
+      project_id:activeProjectId||null
+    })});
+    if(button)button.textContent="Teacher проверил";
+    showTeacherFeedback(data.feedback);
+    await loadBrainOverview(false);
+  }catch(error){
+    if(button){button.disabled=false;button.textContent="Проверить Teacher";}
+    appendChatMessage("assistant",error.message,{badge:"TEACHER",system:true,name:"Cloud Teacher",icon:"T"});
+  }
+}
+
 function showConfirmation(result,originalMessage){
   const action=result?.plan?.actions?.[0]?.action||"действие";
   const extra='<div class="chat-confirm-actions"><button type="button" class="primary" data-brain-confirm>Подтвердить</button><button type="button" class="secondary" data-brain-cancel>Отменить</button></div>';
@@ -259,8 +299,21 @@ async function sendBrainMessage(value,confirmed=false,echoUser=true){
       pipeline.memory_retrieval?"память: "+pipeline.memory_retrieval:null,
       pipeline.teacher_reviewed?"Teacher: проверено":(pipeline.teacher_error?"Teacher: ошибка":null)
     ].filter(Boolean);
-    const traceHtml=trace.length?'<div class="chat-trace">'+trace.map(x=>'<span>'+chatEscape(x)+'</span>').join("")+'</div>':"";
-    appendChatMessage("assistant",data.reply||"Готово.",{badge:"MIYORI",extra:traceHtml});
+    const teacherReady=!!(data.brain?.teacher?.configured&&data.brain?.teacher?.enabled);
+    const reviewButton=teacherReady&&!pipeline.teacher_reviewed?'<button type="button" class="teacher-review-button" data-teacher-review>Проверить Teacher</button>':"";
+    const traceHtml=(trace.length||reviewButton)?'<div class="chat-trace">'+trace.map(x=>'<span>'+chatEscape(x)+'</span>').join("")+reviewButton+'</div>':"";
+    const answerRow=appendChatMessage("assistant",data.reply||"Готово.",{badge:"MIYORI",extra:traceHtml});
+    const teacherButton=answerRow?.querySelector("[data-teacher-review]");
+    if(teacherButton)teacherButton.addEventListener("click",()=>requestTeacherReview(value,data.reply||"",teacherButton));
+    if(pipeline.teacher_reviewed&&data.teacher_feedback?.id){
+      const autoTrace=answerRow?.querySelector(".chat-trace");
+      if(autoTrace){
+        const accept=document.createElement("button");
+        accept.type="button";accept.className="teacher-review-button";accept.textContent="Открыть проверку";
+        accept.addEventListener("click",()=>showTeacherFeedback(data.teacher_feedback));
+        autoTrace.appendChild(accept);
+      }
+    }
     pendingBrainRequest=null;
     await Promise.all([loadBrainOverview(false),loadWorkspace(activeProjectId),loadMemory(),refreshActiveContext()]);
     await loadChatSessions(false);
