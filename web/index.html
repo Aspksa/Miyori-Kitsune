@@ -14,21 +14,21 @@
       <div class="brand">
         <div class="brand-mark">狐</div>
         <div class="brand-copy"><strong>Miyori Kitsune</strong><span>Personal AI System</span></div>
-        <span class="brand-version" id="brandVersion">v0.2</span>
+        <span class="brand-version" id="brandVersion">v0.3</span>
       </div>
 
       <button class="profile-card nav-item" data-page="account">
         <span class="profile-avatar">AK</span>
-        <span class="profile-copy"><b>Личный кабинет</b><small>Профиль и синхронизация</small></span>
+        <span class="profile-copy"><b>Личный кабинет</b><small>Профиль и синхронизация · <span data-version="account">v—</span></small></span>
         <span class="chevron">›</span>
       </button>
 
       <div class="nav-label">Пространства</div>
       <nav class="nav" aria-label="Основное меню">
-        <button class="nav-item active" data-page="chat"><span class="nav-icon">✦</span><b>Чат с Miyori Kitsune</b><span class="nav-hint">AI</span></button>
-        <button class="nav-item" data-page="workspace"><span class="nav-icon">▦</span><b>Рабочее пространство</b></button>
-        <button class="nav-item" data-page="home"><span class="nav-icon">⌂</span><b>Домашнее пространство</b></button>
-        <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><b>Настройки</b></button>
+        <button class="nav-item active" data-page="chat"><span class="nav-icon">✦</span><b>Чат с Miyori Kitsune</b><span class="nav-hint" data-version="chat">v—</span></button>
+        <button class="nav-item" data-page="workspace"><span class="nav-icon">▦</span><b>Рабочее пространство</b><span class="nav-hint" data-version="workspace">v—</span></button>
+        <button class="nav-item" data-page="home"><span class="nav-icon">⌂</span><b>Домашнее пространство</b><span class="nav-hint" data-version="home">v—</span></button>
+        <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><b>Настройки</b><span class="nav-hint" data-version="settings">v—</span></button>
       </nav>
 
       <div class="sidebar-spacer"></div>
@@ -40,7 +40,7 @@
           <span class="profile-copy"><b>Обновление проекта</b><small id="updateMiniStatus">GitHub · stable</small></span>
           <i class="status-dot" id="updateDot"></i>
         </button>
-        <button class="nav-item" data-page="mobile"><span class="nav-icon">▣</span><b>Мобильное приложение</b><span class="nav-hint">Soon</span></button>
+        <button class="nav-item" data-page="mobile"><span class="nav-icon">▣</span><b>Мобильное приложение</b><span class="nav-hint" data-version="mobile">v—</span></button>
       </div>
 
       <div class="core-state">
@@ -87,7 +87,7 @@
 
       <section class="page" id="page-settings"><div class="page-heading"><p class="eyebrow">SYSTEM</p><h2>Настройки</h2><p>Управление ядром, интерфейсом, приватностью и локальным хранением.</p></div><div class="settings-card"><div class="setting-row"><span><b>Портативный режим</b><small>Все рабочие данные остаются рядом с проектом</small></span><em>Включён</em></div><div class="setting-row"><span><b>Локальный сервер</b><small>Доступен только с этого компьютера через 127.0.0.1</small></span><em>Защищён</em></div><div class="setting-row"><span><b>Канал обновлений</b><small>Основная ветка GitHub</small></span><em>Stable</em></div></div></section>
 
-      <section class="page" id="page-updates"><div class="page-heading"><p class="eyebrow">GITHUB UPDATE</p><h2>Обновление проекта</h2><p>Проверка и установка актуальной версии напрямую из официального репозитория Miyori Kitsune.</p></div><div class="update-dashboard"><article class="update-main"><div class="repo-line"><span class="feature-icon">↻</span><div><small>Источник обновлений</small><b>Aspksa/Miyori-Kitsune</b></div><span class="stable-pill">STABLE</span></div><div class="version-grid"><div><small>Установлено</small><strong id="currentVersion">—</strong></div><div><small>Доступно</small><strong id="latestVersion">—</strong></div><div><small>Статус</small><strong id="updateStatus">Не проверено</strong></div></div><div class="update-actions"><button class="secondary" id="checkUpdateButton">Проверить обновления</button><button class="primary" id="applyUpdateButton" disabled>Установить обновление</button></div><p class="update-note" id="updateMessage">Пользовательские данные, логи и локальные настройки при обновлении не удаляются.</p></article><aside class="safety-card"><span>✓</span><div><b>Безопасное обновление</b><p>Перед заменой файлов Miyori создаёт локальную резервную копию. После установки потребуется перезапуск.</p></div></aside></div></section>
+      <section class="page" id="page-updates"><div class="page-heading"><p class="eyebrow">GITHUB UPDATE</p><h2>Обновление проекта</h2><p>Проверка и установка актуальной версии напрямую из официального репозитория Miyori Kitsune.</p></div><div class="update-dashboard"><article class="update-main"><div class="repo-line"><span class="feature-icon">↻</span><div><small>Источник обновлений</small><b>Aspksa/Miyori-Kitsune</b></div><span class="stable-pill">STABLE</span></div><div class="version-grid"><div><small>Установлено</small><strong id="currentVersion">—</strong></div><div><small>Доступно</small><strong id="latestVersion">—</strong></div><div><small>Статус</small><strong id="updateStatus">Не проверено</strong></div></div><div class="component-versions" id="componentVersions"></div><div class="update-actions"><button class="secondary" id="checkUpdateButton">Проверить обновления</button><button class="primary" id="applyUpdateButton" disabled>Установить обновление</button></div><p class="update-note" id="updateMessage">Пользовательские данные, логи и локальные настройки при обновлении не удаляются.</p></article><aside class="safety-card"><span>✓</span><div><b>Безопасное обновление</b><p>Перед заменой файлов Miyori создаёт локальную резервную копию. После установки потребуется перезапуск.</p></div></aside></div></section>
 
       <section class="page" id="page-account"><div class="page-heading"><p class="eyebrow">PROFILE</p><h2>Личный кабинет</h2><p>Персональный профиль и будущая синхронизация устройств.</p></div><div class="profile-page-card"><div class="profile-large-avatar">AK</div><div><h3>Aspksa</h3><p>Локальный профиль Miyori Kitsune</p><div class="profile-tags"><span>Owner</span><span>Portable</span><span>Local-first</span></div></div></div></section>
 
