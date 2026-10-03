@@ -74,7 +74,7 @@ function renderBrainOverview(data){
   const learning=data.learning||{};
   const training=data.training||{};
   const cloud=training.cloudru||{};
-  document.getElementById("brainStatusVersion").textContent="v"+(identity.development_stage||"—").replace("brain-","");
+  document.getElementById("brainStatusVersion").textContent="v"+((data.brain||{}).version||"—");
   document.getElementById("brainWorldStatus").textContent=(world.nodes||0)+" объектов";
   document.getElementById("brainSkillsStatus").textContent=(skills.enabled||skills.count||0)+" активных";
   document.getElementById("brainLearningStatus").textContent=(learning.confirmed||0)+" подтверждено";
@@ -133,24 +133,23 @@ async function sendBrainMessage(value,confirmed=false,echoUser=true){
   if(echoUser)appendChatMessage("user",value);
   setThinking(true,confirmed?"Подтверждаю действие…":"Miyori думает…");
   try{
-    const data=await api("/api/brain/think",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    const response=await fetch("/api/brain/think",{method:"POST",cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       message:value,
       session_id:chatSessionId,
       project_id:activeProjectId||null,
       confirmed
     })});
+    const data=await response.json().catch(()=>({}));
+    if(response.status===409&&data.requires_confirmation){
+      showConfirmation(data,value);
+      return;
+    }
+    if(!response.ok||data.ok===false)throw new Error(data.error||"Ошибка Brain");
     appendChatMessage("assistant",data.reply||"Готово.",{badge:(data.intent||"ответ").toUpperCase()});
     pendingBrainRequest=null;
     await Promise.all([loadBrainOverview(false),loadWorkspace(activeProjectId),loadMemory(),refreshActiveContext()]);
   }catch(error){
-    try{
-      const response=await fetch("/api/brain/think",{method:"POST",cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:value,session_id:chatSessionId,project_id:activeProjectId||null,confirmed})});
-      const data=await response.json().catch(()=>({}));
-      if(response.status===409&&data.requires_confirmation)showConfirmation(data,value);
-      else appendChatMessage("assistant",data.error||error.message,{badge:"ОШИБКА",system:true});
-    }catch{
-      appendChatMessage("assistant",error.message,{badge:"ОШИБКА",system:true});
-    }
+    appendChatMessage("assistant",error.message,{badge:"ОШИБКА",system:true});
   }finally{
     chatBusy=false;
     setThinking(false);
