@@ -6,8 +6,8 @@
 
 - GitHub: `Aspksa/Miyori-Kitsune`
 - Ветка: `main`
-- Текущий релиз: **v0.12.0**
-- Последний известный коммит на момент handoff: `39eea8833110232ddfa93b81cb9271d440d075fe`
+- Текущий релиз: **v0.13.0**
+- Последний известный коммит до обновления handoff: `fb9768388769467360fc87eda84995a9b87f21f6`
 - Точка запуска Windows: `MiyoriKitsune.bat`
 - Manifest: `version.json`
 
@@ -32,6 +32,23 @@ Cloud.ru — только вычислительная инфраструкту�
 - позже — инструменты и компьютерные действия.
 
 Интерфейс должен быть профессиональным, красивым, удобным, адаптивным и компактным.
+
+## Новое в v0.13.0 — Cognitive Foundation
+
+- **Model Registry**: версии моделей Miyori, стадии `candidate → testing → approved → active`, контролируемая активация и foundation для rollback.
+- **Memory v0.3**: importance, confidence, source и relevance retrieval по текущему запросу с учётом важности и давности.
+- **Embodiment Registry**:
+  - «глаза» — vision sensor, сейчас через chat-image adapter;
+  - «уши» — hearing channel, пока без microphone/STT adapter;
+  - «голос» — speech actuator, пока без TTS adapter;
+  - «руки» — контролируемые цифровые действия через Action Gateway;
+  - «ноги» — mobility channel, по умолчанию отключён до появления безопасного navigation/robotics adapter.
+- Cognitive Loop теперь включает состояние органов восприятия и использует query-aware retrieval памяти.
+- Self-Development получил строгую state machine: нельзя перескакивать через sandbox/test; применение всегда требует явного подтверждения.
+- Safety Kernel теперь считает Brain, Memory, Model Registry и Embodiment критическими областями.
+- Добавлены `tests/test_cognitive_foundation.py`.
+
+Важно: это **архитектурные органы**, а не прямой доступ к камере/микрофону/компьютеру. Реальные hardware/tool adapters подключаются отдельно с разрешениями и аудитом.
 
 ## Что уже реализовано
 
@@ -149,17 +166,17 @@ Chat v1.1 — основной UI.
 
 ## Что делать дальше
 
-Наиболее логичный следующий этап — **Miyori Neural Core**:
+Наиболее логичный следующий этап — **Neural Runtime + настоящая semantic memory**:
 
-1. Model Registry и версии весов.
-2. Tokenizer contract.
-3. Embeddings.
-4. Semantic retrieval.
-5. Inference pipeline.
-6. Evaluation harness.
-7. Candidate model lifecycle:
-   `train → evaluate → compare → approve → promote → rollback`.
-8. Cloud.ru training orchestration с расчётом стоимости и лимитом бюджета.
+1. Реальный neural backend за контрактом `BrainModelRuntime`.
+2. Tokenizer/model artifact contract.
+3. Embeddings и vector semantic retrieval.
+4. Context budget + fusion памяти, World Model и навыков.
+5. Evaluation harness.
+6. Подключение image/screen perception adapter.
+7. Затем microphone/STT и TTS adapters.
+8. После этого — расширение «рук» через sandboxed computer/file tools.
+9. Cloud.ru training orchestration: estimate → budget → confirm → train → evaluate → approve → promote/rollback.
 
 Перед новым изменением сначала прочитать:
 - `docs/PROJECT_STATE.json`
