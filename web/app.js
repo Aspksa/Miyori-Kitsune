@@ -157,10 +157,9 @@ function setThinking(active,title="Miyori думает…"){
   if(!active)return;
   document.getElementById("thinkingTitle").textContent=title;
   const steps=[
-    "Собираю релевантную память и текущий контекст",
-    "Miyori Brain формирует ответ и сверяет модель мира",
-    "Проверяю разрешённые действия через Action Gateway",
-    "Сохраняю опыт; Cloud Teacher работает отдельно, если автопроверка включена"
+    "Вспоминаю нужное",
+    "Готовлю ответ",
+    "Проверяю результат"
   ];
   let index=0;
   document.getElementById("thinkingDetail").textContent=steps[0];
@@ -294,28 +293,7 @@ async function sendBrainMessage(value,confirmed=false,echoUser=true){
       return;
     }
     if(!response.ok||data.ok===false)throw new Error(data.error||"Ошибка Brain");
-    const pipeline=data.pipeline||{};
-    const trace=[
-      pipeline.student_runtime?(pipeline.student_active?"мозг: Miyori Student":"мозг: "+pipeline.student_runtime):null,
-      pipeline.fallback_from?"fallback: "+pipeline.fallback_from:null,
-      pipeline.memory_retrieval?"память: "+pipeline.memory_retrieval:null,
-      pipeline.teacher_reviewed?"Teacher: проверено":(pipeline.teacher_error?"Teacher: ошибка":null)
-    ].filter(Boolean);
-    const teacherReady=!!(data.brain?.teacher?.configured&&data.brain?.teacher?.enabled);
-    const reviewButton=teacherReady&&!pipeline.teacher_reviewed?'<button type="button" class="teacher-review-button" data-teacher-review>Проверить Teacher</button>':"";
-    const traceHtml=(trace.length||reviewButton)?'<div class="chat-trace">'+trace.map(x=>'<span>'+chatEscape(x)+'</span>').join("")+reviewButton+'</div>':"";
-    const answerRow=appendChatMessage("assistant",data.reply||"Готово.",{badge:"MIYORI",extra:traceHtml});
-    const teacherButton=answerRow?.querySelector("[data-teacher-review]");
-    if(teacherButton)teacherButton.addEventListener("click",()=>requestTeacherReview(value,data.reply||"",teacherButton));
-    if(pipeline.teacher_reviewed&&data.teacher_feedback?.id){
-      const autoTrace=answerRow?.querySelector(".chat-trace");
-      if(autoTrace){
-        const accept=document.createElement("button");
-        accept.type="button";accept.className="teacher-review-button";accept.textContent="Открыть проверку";
-        accept.addEventListener("click",()=>showTeacherFeedback(data.teacher_feedback));
-        autoTrace.appendChild(accept);
-      }
-    }
+    appendChatMessage("assistant",data.reply||"Готово.",{badge:"MIYORI"});
     pendingBrainRequest=null;
     await Promise.all([loadBrainOverview(false),loadWorkspace(activeProjectId),loadMemory(),refreshActiveContext()]);
     await loadChatSessions(false);
@@ -483,6 +461,49 @@ function renderDevices(devices=[]){
   }));
 }
 
+function friendlyCloudMessage(message){
+  let text=String(message||"");
+  const rules=[
+    [/Miyori Student[^.]*не настроен[^.]*/gi,"Сначала укажи адрес мозга Miyori и ключ доступа"],
+    [/Cloud Teacher[^.]*не настроен[^.]*/gi,"Сначала вставь ключ учителя"],
+    [/Foundation Models API Key/gi,"ключ учителя"],
+    [/ML Inference API Token/gi,"ключ доступа"],
+    [/ML Inference endpoint/gi,"адрес мозга"],
+    [/Student candidate/gi,"новую версию мозга"],
+    [/candidate/gi,"новую версию"],
+    [/evaluation/gi,"проверка качества"],
+    [/Internal planner/gi,"резервный режим"],
+    [/GPU Training/gi,"обучение"],
+    [/Student/gi,"мозг Miyori"],
+    [/Teacher/gi,"учитель"]
+  ];
+  rules.forEach(([pattern,replacement])=>{text=text.replace(pattern,replacement);});
+  return text;
+}
+
+async function saveCloudSettingsQuiet(){
+  const payload={
+    key_id:document.getElementById("cloudruKeyId").value.trim(),
+    key_secret:document.getElementById("cloudruKeySecret").value,
+    workspace_id:document.getElementById("cloudruWorkspaceId").value.trim(),
+    api_key:document.getElementById("cloudruApiKey").value,
+    region:document.getElementById("cloudruRegion").value.trim()||"SR006",
+    foundation_api_key:document.getElementById("cloudruFoundationApiKey").value,
+    teacher_model:document.getElementById("cloudruTeacherModel").value.trim()||"openai/gpt-oss-120b",
+    teacher_enabled:document.getElementById("cloudruTeacherEnabled").checked,
+    teacher_auto_review:document.getElementById("cloudruTeacherAutoReview").checked,
+    student_endpoint:document.getElementById("cloudruStudentEndpoint").value.trim(),
+    student_api_key:document.getElementById("cloudruStudentApiKey").value,
+    student_model:document.getElementById("cloudruStudentModel").value.trim()||"Qwen/Qwen3-8B",
+    student_version:document.getElementById("cloudruStudentVersion").value.trim()||"0.1.0",
+    student_enabled:document.getElementById("cloudruStudentEnabled").checked
+  };
+  const data=await api("/api/cloudru/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  renderCloudru(data.cloudru||{});
+  if(data.student)await loadStudentStatus();
+  return data;
+}
+
 function renderCloudru(cloudru={}){
   const trainingConfigured=!!(cloudru.training_configured??cloudru.configured);
   const teacherConfigured=!!cloudru.foundation_configured;
@@ -506,9 +527,11 @@ function renderCloudru(cloudru={}){
   document.getElementById("cloudruFoundationApiKey").placeholder=cloudru.foundation_api_key_saved?"Foundation API Key сохранён — оставьте пустым, чтобы не менять":"Введите Foundation Models API Key";
   document.getElementById("cloudruStudentApiKey").placeholder=cloudru.student_api_key_saved?"Student API Token сохранён — оставьте пустым, чтобы не менять":"Введите ML Inference API Token";
   const state=document.getElementById("cloudruConnectionState");
-  const ready=[teacherConfigured?"Teacher":null,studentConfigured?"Student":null,trainingConfigured?"GPU":null].filter(Boolean);
-  state.textContent=ready.length?ready.join(" + "):"Не настроено";
-  state.classList.toggle("cloudru-ready",ready.length>0);
+  const readyCount=[teacherConfigured,studentConfigured].filter(Boolean).length;
+  state.textContent=readyCount===2?"Готово":(readyCount===1?"Частично подключено":"Не подключено");
+  state.classList.toggle("cloudru-ready",readyCount>0);
+  const teacherState=document.getElementById("teacherSimpleState");
+  if(teacherState)teacherState.textContent=teacherConfigured?"Подключён":"Не подключён";
 }
 
 function renderStudentStatus(student={}){
@@ -517,9 +540,9 @@ function renderStudentStatus(student={}){
   const stage=student.stage||"unregistered";
   const score=student.evaluation_score;
   const configured=!!student.configured;
-  const candidateText=configured?(stage+" v"+(student.version||"—")+(score!=null?" · score "+Number(score).toFixed(2):"")):"Не настроен";
-  const activeText=student.active_is_student?" · active v"+(student.active_student_version||"—"):"";
-  state.textContent=candidateText+activeText;
+  let text="Не подключён";
+  if(configured)text=student.active_is_student?"Используется сейчас":(score!=null?"Проверен":"Подключён");
+  state.textContent=text;
   state.classList.toggle("student-active",!!student.active_is_student);
   const evaluate=document.getElementById("evaluateCloudStudentButton");
   const activate=document.getElementById("activateCloudStudentButton");
@@ -591,89 +614,75 @@ document.getElementById("cloudruForm").addEventListener("submit",async event=>{
   event.preventDefault();
   const status=document.getElementById("cloudruSaveStatus");
   status.textContent="Сохранение…";
-  const payload={
-    key_id:document.getElementById("cloudruKeyId").value.trim(),
-    key_secret:document.getElementById("cloudruKeySecret").value,
-    workspace_id:document.getElementById("cloudruWorkspaceId").value.trim(),
-    api_key:document.getElementById("cloudruApiKey").value,
-    region:document.getElementById("cloudruRegion").value.trim()||"SR006",
-    foundation_api_key:document.getElementById("cloudruFoundationApiKey").value,
-    teacher_model:document.getElementById("cloudruTeacherModel").value.trim()||"openai/gpt-oss-120b",
-    teacher_enabled:document.getElementById("cloudruTeacherEnabled").checked,
-    teacher_auto_review:document.getElementById("cloudruTeacherAutoReview").checked,
-    student_endpoint:document.getElementById("cloudruStudentEndpoint").value.trim(),
-    student_api_key:document.getElementById("cloudruStudentApiKey").value,
-    student_model:document.getElementById("cloudruStudentModel").value.trim()||"Qwen/Qwen3-8B",
-    student_version:document.getElementById("cloudruStudentVersion").value.trim()||"0.1.0",
-    student_enabled:document.getElementById("cloudruStudentEnabled").checked
-  };
   try{
-    const data=await api("/api/cloudru/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-    renderCloudru(data.cloudru||{});
-    if(data.student)await loadStudentStatus();
-    status.textContent="Сохранено локально";
-  }catch(error){status.textContent=error.message;}
+    await saveCloudSettingsQuiet();
+    status.textContent="Настройки сохранены";
+  }catch(error){status.textContent=friendlyCloudMessage(error.message);}
 });
 
 document.getElementById("testCloudStudentButton").addEventListener("click",async()=>{
   const button=document.getElementById("testCloudStudentButton");
   const status=document.getElementById("cloudruSaveStatus");
-  button.disabled=true;status.textContent="Проверяю Miyori Student…";
+  button.disabled=true;status.textContent="Подключаю мозг Miyori…";
   try{
+    document.getElementById("cloudruStudentEnabled").checked=true;
+    await saveCloudSettingsQuiet();
     const data=await api("/api/cloudru/student/test",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
-    status.textContent="Student отвечает · "+data.latency_ms+" мс"+(data.reply?" · "+data.reply:"");
+    status.textContent="Мозг Miyori подключён";
     await Promise.all([loadStudentStatus(),loadBrainOverview(false)]);
-  }catch(error){status.textContent=error.message;}
+  }catch(error){status.textContent=friendlyCloudMessage(error.message);}
   finally{button.disabled=false;}
 });
 
 document.getElementById("evaluateCloudStudentButton").addEventListener("click",async()=>{
   const button=document.getElementById("evaluateCloudStudentButton");
   const status=document.getElementById("cloudruSaveStatus");
-  button.disabled=true;status.textContent="Оцениваю Student candidate…";
+  button.disabled=true;status.textContent="Проверяю качество мозга Miyori…";
   try{
     const data=await api("/api/brain/student/evaluate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project_id:activeProjectId||null})});
-    status.textContent="Evaluation: "+data.report.passed+"/"+data.report.total+" · score "+Number(data.report.score||0).toFixed(2);
+    status.textContent=data.report.score>=0.75?"Проверка пройдена — мозг можно использовать":"Пока не прошёл проверку качества";
     await Promise.all([loadStudentStatus(),loadBrainOverview(false)]);
-  }catch(error){status.textContent=error.message;}
+  }catch(error){status.textContent=friendlyCloudMessage(error.message);}
   finally{button.disabled=false;}
 });
 
 document.getElementById("activateCloudStudentButton").addEventListener("click",async()=>{
-  if(!confirm("Активировать эту версию Miyori Student как основной мозг для обычного диалога? Internal planner останется аварийным fallback."))return;
+  if(!confirm("Использовать этот облачный мозг для ответов Miyori? При проблеме можно вернуть прошлую версию."))return;
   const button=document.getElementById("activateCloudStudentButton");
   const status=document.getElementById("cloudruSaveStatus");
-  button.disabled=true;status.textContent="Активирую Miyori Student…";
+  button.disabled=true;status.textContent="Подключаю мозг к Miyori…";
   try{
     const data=await api("/api/brain/student/promote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({approved:true,min_score:0.75})});
-    status.textContent="Miyori Student активирован";
+    status.textContent="Готово — Miyori использует новый мозг";
     await Promise.all([loadStudentStatus(),loadBrainOverview(false)]);
-  }catch(error){status.textContent=error.message;}
+  }catch(error){status.textContent=friendlyCloudMessage(error.message);}
   finally{button.disabled=false;}
 });
 
 document.getElementById("rollbackCloudStudentButton").addEventListener("click",async()=>{
-  if(!confirm("Откатить активный мозг Miyori на предыдущую проверенную модель?"))return;
+  if(!confirm("Вернуть предыдущий мозг Miyori?"))return;
   const button=document.getElementById("rollbackCloudStudentButton");
   const status=document.getElementById("cloudruSaveStatus");
-  button.disabled=true;status.textContent="Откатываю модель Miyori…";
+  button.disabled=true;status.textContent="Возвращаю прошлую версию…";
   try{
     const data=await api("/api/brain/student/rollback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({approved:true})});
-    status.textContent="Откат выполнен · активна "+(data.restored?.name||"предыдущая модель");
+    status.textContent="Предыдущая версия возвращена";
     await Promise.all([loadStudentStatus(),loadBrainOverview(false)]);
-  }catch(error){status.textContent=error.message;}
+  }catch(error){status.textContent=friendlyCloudMessage(error.message);}
   finally{button.disabled=false;}
 });
 
 document.getElementById("testCloudTeacherButton").addEventListener("click",async()=>{
   const button=document.getElementById("testCloudTeacherButton");
   const status=document.getElementById("cloudruSaveStatus");
-  button.disabled=true;status.textContent="Проверка Cloud Teacher…";
+  button.disabled=true;status.textContent="Подключаю учителя…";
   try{
+    document.getElementById("cloudruTeacherEnabled").checked=true;
+    await saveCloudSettingsQuiet();
     const data=await api("/api/cloudru/foundation/test",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
-    status.textContent="Teacher подключён · "+data.latency_ms+" мс · моделей: "+(data.models_found||0);
+    status.textContent="Учитель подключён";
     await Promise.all([loadAccount(),loadBrainOverview(false)]);
-  }catch(error){status.textContent=error.message;}
+  }catch(error){status.textContent=friendlyCloudMessage(error.message);}
   finally{button.disabled=false;}
 });
 
@@ -685,7 +694,7 @@ document.getElementById("testCloudruButton").addEventListener("click",async()=>{
     const data=await api("/api/cloudru/test",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
     renderCloudru(data.status||{configured:true});
     status.textContent="Подключено · "+data.latency_ms+" мс";
-  }catch(error){status.textContent=error.message;}
+  }catch(error){status.textContent=friendlyCloudMessage(error.message);}
   finally{button.disabled=false;}
 });
 
