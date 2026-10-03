@@ -157,10 +157,10 @@ function setThinking(active,title="Miyori думает…"){
   if(!active)return;
   document.getElementById("thinkingTitle").textContent=title;
   const steps=[
-    "Собираю память, проект и текущий контекст",
-    "Сверяю модель мира и доступные навыки",
-    "Формирую план и проверяю разрешённые действия",
-    "Проверяю результат и сохраняю опыт"
+    "Собираю релевантную память и текущий контекст",
+    "Miyori Brain формирует ответ и сверяет модель мира",
+    "Проверяю разрешённые действия через Action Gateway",
+    "Сохраняю опыт; Cloud Teacher работает отдельно, если автопроверка включена"
   ];
   let index=0;
   document.getElementById("thinkingDetail").textContent=steps[0];
@@ -171,24 +171,27 @@ function setThinking(active,title="Miyori думает…"){
 }
 
 function renderBrainOverview(data){
-  const identity=data.identity||{};
   const world=data.world_model||{};
   const skills=data.skills||{};
   const learning=data.learning||{};
-  const training=data.training||{};
-  const cloud=training.cloudru||{};
+  const teacher=data.teacher||((data.brain||{}).teacher)||{};
+  const memory=data.memory_engine||{};
+  const runtime=(data.brain||{}).runtime_state||{};
   document.getElementById("brainStatusVersion").textContent="v"+((data.brain||{}).version||"—");
+  const memoryEl=document.getElementById("brainMemoryStatus");
+  const indexed=Number(memory.index_items||memory.vector_index?.index_items||0);
+  memoryEl.textContent=indexed?indexed+" векторов":"гибридная";
   document.getElementById("brainWorldStatus").textContent=(world.nodes||0)+" объектов";
   document.getElementById("brainSkillsStatus").textContent=(skills.enabled||skills.count||0)+" активных";
   document.getElementById("brainLearningStatus").textContent=(learning.confirmed||0)+" подтверждено";
-  const cloudEl=document.getElementById("brainCloudStatus");
-  cloudEl.textContent=cloud.configured?"подключён":"не настроен";
-  cloudEl.classList.toggle("ok",!!cloud.configured);
-  document.getElementById("brainRuntimeState").textContent=cloud.configured?"LOCAL + CLOUD":"LOCAL";
+  const teacherEl=document.getElementById("brainTeacherStatus");
+  teacherEl.textContent=teacher.configured?(teacher.enabled?(teacher.auto_review?"автопроверка":"готов"):"выключен"):"не настроен";
+  teacherEl.classList.toggle("ok",!!(teacher.configured&&teacher.enabled));
+  document.getElementById("brainRuntimeState").textContent=runtime.neural?"MIYORI · NEURAL":"MIYORI · PLANNER";
 }
 
 function brainOverviewText(data){
-  const identity=data.identity||{},world=data.world_model||{},skills=data.skills||{},learning=data.learning||{},reflections=data.reflections||{},development=data.development||{},training=data.training||{},cloud=training.cloudru||{};
+  const identity=data.identity||{},world=data.world_model||{},skills=data.skills||{},learning=data.learning||{},reflections=data.reflections||{},development=data.development||{},training=data.training||{},teacher=data.teacher||{},memory=data.memory_engine||{};
   const latest=training.latest_dataset;
   return [
     "Состояние Miyori:",
@@ -198,7 +201,9 @@ function brainOverviewText(data){
     "• обучение: "+(learning.count||0)+" наблюдений, "+(learning.confirmed||0)+" подтверждённых",
     "• рефлексии: "+(reflections.count||0),
     "• предложения развития: "+(development.active||0)+" активных",
-    "• Cloud.ru: "+(cloud.configured?"настроен":"не настроен"),
+    "• память: "+(memory.index_items||0)+" векторов в semantic index",
+    "• Cloud Teacher: "+(teacher.configured?(teacher.enabled?(teacher.auto_review?"автопроверка включена":"готов"):"выключен"):"не настроен"),
+    "• teacher feedback: "+(teacher.feedback_count||0),
     "• датасеты: "+(training.datasets||0)+(latest?" · последний: "+latest.records+" примеров":"")
   ].join("\n");
 }
@@ -210,7 +215,7 @@ async function loadBrainOverview(showInChat=false){
     if(showInChat)appendChatMessage("assistant",brainOverviewText(data),{badge:"СТАТУС",system:true});
     return data;
   }catch(error){
-    ["brainStatusVersion","brainWorldStatus","brainSkillsStatus","brainLearningStatus","brainCloudStatus"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent="недоступно";});
+    ["brainStatusVersion","brainMemoryStatus","brainWorldStatus","brainSkillsStatus","brainLearningStatus","brainTeacherStatus"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent="недоступно";});
     if(showInChat)appendChatMessage("assistant","Не удалось получить внутреннее состояние: "+error.message,{badge:"ОШИБКА",system:true});
   }
 }
@@ -248,7 +253,14 @@ async function sendBrainMessage(value,confirmed=false,echoUser=true){
       return;
     }
     if(!response.ok||data.ok===false)throw new Error(data.error||"Ошибка Brain");
-    appendChatMessage("assistant",data.reply||"Готово.",{badge:(data.intent||"ответ").toUpperCase()});
+    const pipeline=data.pipeline||{};
+    const trace=[
+      pipeline.student_runtime?"мозг: "+pipeline.student_runtime:null,
+      pipeline.memory_retrieval?"память: "+pipeline.memory_retrieval:null,
+      pipeline.teacher_reviewed?"Teacher: проверено":(pipeline.teacher_error?"Teacher: ошибка":null)
+    ].filter(Boolean);
+    const traceHtml=trace.length?'<div class="chat-trace">'+trace.map(x=>'<span>'+chatEscape(x)+'</span>').join("")+'</div>':"";
+    appendChatMessage("assistant",data.reply||"Готово.",{badge:"MIYORI",extra:traceHtml});
     pendingBrainRequest=null;
     await Promise.all([loadBrainOverview(false),loadWorkspace(activeProjectId),loadMemory(),refreshActiveContext()]);
     await loadChatSessions(false);
@@ -417,17 +429,23 @@ function renderDevices(devices=[]){
 }
 
 function renderCloudru(cloudru={}){
-  const configured=!!cloudru.configured;
+  const trainingConfigured=!!(cloudru.training_configured??cloudru.configured);
+  const teacherConfigured=!!cloudru.foundation_configured;
   document.getElementById("cloudruKeyId").value=cloudru.key_id||"";
   document.getElementById("cloudruWorkspaceId").value=cloudru.workspace_id||"";
   document.getElementById("cloudruRegion").value=cloudru.region||"SR006";
   document.getElementById("cloudruKeySecret").value="";
   document.getElementById("cloudruApiKey").value="";
+  document.getElementById("cloudruFoundationApiKey").value="";
+  document.getElementById("cloudruTeacherModel").value=cloudru.teacher_model||"openai/gpt-oss-120b";
+  document.getElementById("cloudruTeacherEnabled").checked=cloudru.teacher_enabled!==false;
+  document.getElementById("cloudruTeacherAutoReview").checked=!!cloudru.teacher_auto_review;
   document.getElementById("cloudruKeySecret").placeholder=cloudru.secret_saved?"Секрет сохранён — оставьте пустым, чтобы не менять":"Введите Key Secret";
   document.getElementById("cloudruApiKey").placeholder=cloudru.api_key_saved?"x-api-key сохранён — оставьте пустым, чтобы не менять":"Введите x-api-key";
+  document.getElementById("cloudruFoundationApiKey").placeholder=cloudru.foundation_api_key_saved?"Foundation API Key сохранён — оставьте пустым, чтобы не менять":"Введите Foundation Models API Key";
   const state=document.getElementById("cloudruConnectionState");
-  state.textContent=configured?"Настроено":"Не настроено";
-  state.classList.toggle("cloudru-ready",configured);
+  state.textContent=teacherConfigured?(trainingConfigured?"Teacher + GPU":"Teacher готов"):(trainingConfigured?"GPU готов":"Не настроено");
+  state.classList.toggle("cloudru-ready",teacherConfigured||trainingConfigured);
 }
 
 function renderAccount(data){
@@ -484,13 +502,29 @@ document.getElementById("cloudruForm").addEventListener("submit",async event=>{
     key_secret:document.getElementById("cloudruKeySecret").value,
     workspace_id:document.getElementById("cloudruWorkspaceId").value.trim(),
     api_key:document.getElementById("cloudruApiKey").value,
-    region:document.getElementById("cloudruRegion").value.trim()||"SR006"
+    region:document.getElementById("cloudruRegion").value.trim()||"SR006",
+    foundation_api_key:document.getElementById("cloudruFoundationApiKey").value,
+    teacher_model:document.getElementById("cloudruTeacherModel").value.trim()||"openai/gpt-oss-120b",
+    teacher_enabled:document.getElementById("cloudruTeacherEnabled").checked,
+    teacher_auto_review:document.getElementById("cloudruTeacherAutoReview").checked
   };
   try{
     const data=await api("/api/cloudru/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
     renderCloudru(data.cloudru||{});
     status.textContent="Сохранено локально";
   }catch(error){status.textContent=error.message;}
+});
+
+document.getElementById("testCloudTeacherButton").addEventListener("click",async()=>{
+  const button=document.getElementById("testCloudTeacherButton");
+  const status=document.getElementById("cloudruSaveStatus");
+  button.disabled=true;status.textContent="Проверка Cloud Teacher…";
+  try{
+    const data=await api("/api/cloudru/foundation/test",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+    status.textContent="Teacher подключён · "+data.latency_ms+" мс · моделей: "+(data.models_found||0);
+    await Promise.all([loadAccount(),loadBrainOverview(false)]);
+  }catch(error){status.textContent=error.message;}
+  finally{button.disabled=false;}
 });
 
 document.getElementById("testCloudruButton").addEventListener("click",async()=>{
