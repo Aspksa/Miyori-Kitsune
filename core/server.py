@@ -180,7 +180,7 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/api/brain/overview":
-            self._json({"ok": True, **overview_state()})
+            self._json({"ok": True, "brain": brain_status(), **overview_state()})
             return
 
         if parsed.path == "/api/brain/development":
