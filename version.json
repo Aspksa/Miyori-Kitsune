@@ -1,20 +1,20 @@
 {
-  "version": "0.15.0",
+  "version": "0.16.0",
   "channel": "stable",
   "repository": "Aspksa/Miyori-Kitsune",
   "components": {
-    "core": "0.15.0",
-    "interface": "0.11.0",
+    "core": "0.16.0",
+    "interface": "0.12.0",
     "updater": "0.4.0",
-    "chat": "1.2.0",
+    "chat": "1.3.0",
     "workspace": "0.4.0",
     "home": "0.3.0",
     "settings": "0.3.0",
-    "account": "0.6.0",
+    "account": "0.7.0",
     "mobile": "0.2.0",
     "memory": "0.4.0",
     "assistant": "0.3.0",
-    "brain": "0.8.0",
+    "brain": "0.9.0",
     "identity": "0.1.0",
     "world_model": "0.1.0",
     "reflection": "0.1.0",
@@ -23,24 +23,26 @@
     "self_development": "0.2.0",
     "safety_kernel": "0.2.0",
     "sleep_engine": "0.1.0",
-    "cloudru": "0.2.0",
+    "cloudru": "0.3.0",
     "training_data": "0.2.0",
     "model_registry": "0.1.0",
     "embodiment": "0.1.0",
     "embeddings": "0.1.0",
     "semantic_memory": "0.1.0",
-    "neural_runtime": "0.1.0",
-    "model_evaluation": "0.1.0",
-    "teacher_gateway": "0.1.0"
+    "neural_runtime": "0.2.0",
+    "model_evaluation": "0.2.0",
+    "teacher_gateway": "0.1.0",
+    "student_gateway": "0.1.0"
   },
   "dependencies": {
     "chat": {
-      "core": "0.15.0",
+      "core": "0.16.0",
       "memory": "0.4.0",
       "assistant": "0.3.0",
-      "brain": "0.8.0",
-      "cloudru": "0.2.0",
-      "teacher_gateway": "0.1.0"
+      "brain": "0.9.0",
+      "cloudru": "0.3.0",
+      "teacher_gateway": "0.1.0",
+      "student_gateway": "0.1.0"
     },
     "workspace": {
       "core": "0.7.0",
@@ -53,8 +55,9 @@
       "core": "0.4.0"
     },
     "account": {
-      "core": "0.15.0",
-      "cloudru": "0.2.0"
+      "core": "0.16.0",
+      "cloudru": "0.3.0",
+      "student_gateway": "0.1.0"
     },
     "mobile": {
       "core": "0.4.0"
@@ -69,7 +72,7 @@
       "memory": "0.2.0"
     },
     "brain": {
-      "core": "0.15.0",
+      "core": "0.16.0",
       "assistant": "0.3.0",
       "memory": "0.4.0",
       "workspace": "0.4.0",
@@ -79,15 +82,16 @@
       "learning": "0.1.0",
       "skills": "0.1.0",
       "safety_kernel": "0.2.0",
-      "cloudru": "0.2.0",
+      "cloudru": "0.3.0",
       "training_data": "0.2.0",
       "model_registry": "0.1.0",
       "embodiment": "0.1.0",
       "embeddings": "0.1.0",
       "semantic_memory": "0.1.0",
-      "neural_runtime": "0.1.0",
-      "model_evaluation": "0.1.0",
-      "teacher_gateway": "0.1.0"
+      "neural_runtime": "0.2.0",
+      "model_evaluation": "0.2.0",
+      "teacher_gateway": "0.1.0",
+      "student_gateway": "0.1.0"
     },
     "self_development": {
       "core": "0.9.0",
@@ -101,31 +105,38 @@
       "world_model": "0.1.0"
     },
     "cloudru": {
-      "core": "0.15.0"
+      "core": "0.16.0"
     },
     "training_data": {
-      "core": "0.15.0",
+      "core": "0.16.0",
       "brain": "0.8.0",
       "learning": "0.1.0",
       "reflection": "0.1.0",
       "teacher_gateway": "0.1.0"
     },
     "neural_runtime": {
-      "core": "0.14.0",
-      "model_registry": "0.1.0"
+      "core": "0.16.0",
+      "model_registry": "0.1.0",
+      "cloudru": "0.3.0"
     },
     "semantic_memory": {
       "core": "0.14.0",
       "embeddings": "0.1.0"
     },
     "model_evaluation": {
-      "core": "0.14.0",
-      "neural_runtime": "0.1.0",
+      "core": "0.16.0",
+      "neural_runtime": "0.2.0",
       "model_registry": "0.1.0"
     },
     "teacher_gateway": {
       "core": "0.15.0",
       "cloudru": "0.2.0"
+    },
+    "student_gateway": {
+      "core": "0.16.0",
+      "cloudru": "0.3.0",
+      "model_registry": "0.1.0",
+      "model_evaluation": "0.2.0"
     }
   },
   "mobile_client": {
@@ -136,15 +147,17 @@
     "notes": "Отдельный пакет мобильного клиента будет публиковаться через GitHub Releases."
   },
   "changes": [
-    "Добавлен отдельный Cloud Teacher Gateway: Teacher не является Miyori и не заменяет её ответы.",
-    "Cloud.ru Foundation Models интегрирован через отдельный API Key и OpenAI-compatible endpoint; GPU Training credentials остаются отдельными.",
-    "Автопроверка Teacher выключена по умолчанию, чтобы не создавать неожиданные платные запросы.",
-    "После ответа Miyori в чате можно вручную запустить Teacher review и увидеть отдельную критику.",
-    "Teacher feedback попадает в training dataset только после явного подтверждения пользователя «В обучение».",
-    "Brain response теперь возвращает pipeline trace: runtime Miyori, тип retrieval памяти и факт Teacher review.",
-    "Чат v1.2 показывает статусы мозга, памяти, модели мира, навыков, Cloud Teacher и обучения.",
-    "Личный кабинет разделяет Foundation Models Teacher и GPU Training настройки.",
-    "Добавлены API Teacher status/feedback/review/mark и проверка Foundation Models подключения.",
-    "Добавлены regression tests, подтверждающие, что Teacher не вызывает платный review при выключенной автопроверке и не принимает данные в обучение автоматически."
+    "Добавлен Cloud-hosted Miyori Student runtime на базе Cloud.ru Evolution ML Inference; Cloud Teacher и Miyori Student остаются разными ролями.",
+    "Miyori Student использует OpenAI-compatible ML Inference endpoint и собственный API Token, которые хранятся локально и не возвращаются через status API.",
+    "Student получает последние сообщения текущего диалога и релевантную память Miyori, поэтому облачный мозг работает с контекстом, а не как stateless-модель.",
+    "При недоступности активного Cloud Student Brain автоматически переходит на internal planner fallback и показывает это в pipeline trace.",
+    "Добавлен lifecycle Student: save/register candidate -> connection test -> evaluation -> explicit promote -> rollback.",
+    "Evaluation усилен: проверяются идентичность Miyori, работа с контекстом, честность о невыполненных действиях и action grounding; для активации нужен score >= 0.75.",
+    "Нельзя тихо заменить endpoint/model активной версии Student: изменение требует нового version и повторной оценки.",
+    "Cloud Student configs сохраняются по версиям, поэтому active vN продолжает работать, пока candidate vN+1 тестируется на другом endpoint.",
+    "Добавлен явный rollback активного мозга на предыдущую модель с подтверждением пользователя.",
+    "Личный кабинет получил отдельный Student / ML Inference блок: endpoint, model, version, token, test, evaluate, activate и rollback.",
+    "Чат v1.3 показывает MIYORI · STUDENT, когда обычный диалог действительно обслуживает активный Student runtime.",
+    "Добавлены regression tests для Student lifecycle, endpoint restriction, silent replacement protection и rollback approval."
   ]
 }
