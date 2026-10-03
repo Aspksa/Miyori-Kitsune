@@ -113,3 +113,13 @@
 .student-lifecycle{display:none!important}
 #teacherSimpleState,.student-active{color:var(--accent-soft)!important}
 @media(max-width:720px){#page-chat{padding:8px}.simple-chat{height:calc(100vh - 86px);border-radius:15px}.simple-chat-feed{padding:14px}.simple-chat-feed .message{max-width:94%}.cloud-step{grid-template-columns:1fr}.cloud-step-number{width:28px;height:28px}.cloud-step-head{flex-direction:column}.cloud-advanced-grid{grid-template-columns:1fr}}
+
+/* Further simplify visible account/chrome */
+.topbar .eyebrow{display:none!important}
+#page-account .account-grid>.account-card:not(.account-profile):not(.cloudru-card){display:none!important}
+#page-account .page-heading .eyebrow{display:none!important}
+#page-account .page-heading>p:last-child{display:none!important}
+#page-account .account-grid{grid-template-columns:1fr!important;max-width:900px}
+#page-account .account-profile{display:none!important}
+.cloud-simple-card{grid-column:1!important}
+.brand-copy span{font-size:8px!important}
