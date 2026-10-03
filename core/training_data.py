@@ -7,6 +7,7 @@ from pathlib import Path
 
 from learning import list_learning
 from reflection import list_reflections
+from teacher_gateway import list_feedback as list_teacher_feedback
 
 ROOT = Path(__file__).resolve().parent.parent
 BRAIN_DIR = ROOT / "data" / "brain"
@@ -96,6 +97,27 @@ def build_dataset(name: str = "miyori-learning", include_sessions: bool = True) 
             "metadata": {
                 "confidence": reflection.get("confidence"),
                 "source": "reflection-engine",
+            },
+        })
+
+    for feedback in list_teacher_feedback(2000):
+        if not feedback.get("accepted_for_training"):
+            continue
+        review = feedback.get("feedback", {}) if isinstance(feedback.get("feedback"), dict) else {}
+        recommended = str(review.get("recommended_answer", "")).strip()
+        if not recommended:
+            continue
+        records.append({
+            "type": "teacher-supervised",
+            "input": str(feedback.get("message", "")),
+            "output": recommended,
+            "metadata": {
+                "source": "cloud-teacher",
+                "teacher_model": feedback.get("teacher_model"),
+                "feedback_id": feedback.get("id"),
+                "confidence": review.get("confidence"),
+                "lessons": review.get("lessons", []),
+                "tags": review.get("tags", []),
             },
         })
 
