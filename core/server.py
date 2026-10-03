@@ -13,6 +13,8 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from account import create_pairing, get_profile, list_devices, pairing_status, revoke_device, save_profile
+from cloudru import CloudRuError, credentials_status as cloudru_status, job_history as cloudru_job_history, list_training_configs as cloudru_training_configs, save_credentials as save_cloudru_credentials, submit_training_job as cloudru_submit_training_job, test_connection as cloudru_test_connection
+from training_data import build_dataset as build_training_dataset, list_datasets as list_training_datasets
 from assistant_gateway import build_context, capability_manifest, execute_action, state_snapshot
 from brain import status as brain_status, think as brain_think
 from brain_architecture import architecture_state, consolidate_now
@@ -194,7 +196,23 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/api/account":
-            self._json({"ok": True, "profile": get_profile(), "devices": list_devices(), "pairing": pairing_status()})
+            self._json({"ok": True, "profile": get_profile(), "devices": list_devices(), "pairing": pairing_status(), "cloudru": cloudru_status()})
+            return
+
+        if parsed.path == "/api/cloudru/status":
+            self._json({"ok": True, **cloudru_status()})
+            return
+
+        if parsed.path == "/api/cloudru/configs":
+            self._json({"ok": True, "items": cloudru_training_configs()})
+            return
+
+        if parsed.path == "/api/cloudru/jobs":
+            self._json({"ok": True, "items": cloudru_job_history()})
+            return
+
+        if parsed.path == "/api/training/datasets":
+            self._json({"ok": True, "items": list_training_datasets()})
             return
 
         if parsed.path == "/api/update/check":
@@ -354,6 +372,27 @@ class MiyoriHandler(BaseHTTPRequestHandler):
                 self._json({"ok": True, "profile": save_profile(payload)})
                 return
 
+            if parsed.path == "/api/cloudru/save":
+                self._json({"ok": True, "cloudru": save_cloudru_credentials(payload)})
+                return
+
+            if parsed.path == "/api/cloudru/test":
+                self._json({"ok": True, **cloudru_test_connection()})
+                return
+
+            if parsed.path == "/api/training/dataset/build":
+                dataset = build_training_dataset(
+                    name=str(payload.get("name", "miyori-learning")),
+                    include_sessions=bool(payload.get("include_sessions", True)),
+                )
+                self._json({"ok": True, "dataset": dataset})
+                return
+
+            if parsed.path == "/api/cloudru/training/submit":
+                job = cloudru_submit_training_job(payload)
+                self._json({"ok": True, "job": job})
+                return
+
             if parsed.path == "/api/account/pairing":
                 self._json({"ok": True, **create_pairing()})
                 return
@@ -379,6 +418,10 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             return
         except ValueError as exc:
             self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+        except CloudRuError as exc:
+            log.warning("Cloud.ru action failed: %s", exc)
+            self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_GATEWAY)
             return
         except UpdateError as exc:
             log.warning("Update action failed: %s", exc)
