@@ -89,7 +89,7 @@
           <section class="assistant-chat">
             <div class="chat-header chat-header-pro">
               <div class="chat-identity"><span class="live-dot"></span><div><b>Чат с Miyori</b><small id="chatSessionLabel">Личная сессия · готова</small></div></div>
-              <div class="chat-header-actions"><span class="assistant-state" id="brainRuntimeState">LOCAL</span><button type="button" class="chat-icon-button" id="refreshBrainStatusButton" title="Обновить состояние">↻</button></div>
+              <div class="chat-header-actions"><button type="button" class="chat-history-button" id="chatHistoryButton">Диалоги</button><span class="assistant-state" id="brainRuntimeState">LOCAL</span><button type="button" class="chat-icon-button" id="refreshBrainStatusButton" title="Обновить состояние">↻</button></div>
             </div>
 
             <div class="brain-status-strip" id="brainStatusStrip">
@@ -104,6 +104,11 @@
               <span>Контекст:</span>
               <div id="activeContextChips"><i>Общий контекст</i></div>
               <button type="button" id="refreshContextButton" title="Обновить контекст">↻</button>
+            </div>
+
+            <div class="chat-history-panel" id="chatHistoryPanel" hidden>
+              <div class="chat-history-head"><div><b>Диалоги</b><small>История сохраняется локально</small></div><button type="button" id="newChatButton">＋ Новый</button></div>
+              <div class="chat-history-list" id="chatHistoryList"><p class="empty-state">Загрузка диалогов…</p></div>
             </div>
 
             <div class="chat-feed" id="chatFeed">
