@@ -18,6 +18,10 @@ from training_data import build_dataset as build_training_dataset, list_datasets
 from assistant_gateway import build_context, capability_manifest, execute_action, state_snapshot
 from brain import create_session as brain_create_session, delete_session as brain_delete_session, get_session as brain_get_session, list_sessions as brain_list_sessions, rename_session as brain_rename_session, status as brain_status, think as brain_think
 from brain_architecture import architecture_state, consolidate_now, overview_state
+from model_evaluation import evaluate_model as evaluate_brain_model, latest_reports as model_evaluation_reports
+from model_registry import list_models as list_brain_models, summary as model_registry_summary
+from neural_runtime import runtime_status as neural_runtime_status
+from semantic_memory import status as semantic_memory_status
 from brain_scheduler import start as start_brain_scheduler, stop as stop_brain_scheduler
 from self_development import list_proposals, propose as propose_development, transition as transition_development
 from entities import (
@@ -187,6 +191,20 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             self._json({"ok": True, "items": list_proposals()})
             return
 
+        if parsed.path == "/api/brain/models":
+            self._json({
+                "ok": True,
+                "summary": model_registry_summary(),
+                "items": list_brain_models(),
+                "runtime": neural_runtime_status(),
+                "evaluations": model_evaluation_reports(20),
+            })
+            return
+
+        if parsed.path == "/api/brain/memory/semantic":
+            self._json({"ok": True, **semantic_memory_status()})
+            return
+
         if parsed.path == "/api/chat/sessions":
             self._json({"ok": True, "items": brain_list_sessions()})
             return
@@ -338,6 +356,18 @@ class MiyoriHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/brain/sleep":
                 self._json({"ok": True, "result": consolidate_now()})
+                return
+
+            if parsed.path == "/api/brain/model/evaluate":
+                report = evaluate_brain_model(
+                    str(payload.get("model_id", "")),
+                    context=build_context(
+                        project_id=payload.get("project_id"),
+                        task_id=payload.get("task_id"),
+                        query=str(payload.get("query", "model evaluation")),
+                    ),
+                )
+                self._json({"ok": True, "report": report})
                 return
 
             if parsed.path == "/api/brain/development/propose":
