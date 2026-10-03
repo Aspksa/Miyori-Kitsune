@@ -70,18 +70,18 @@
               </div>
             </div>
 
-            <div class="assistant-cards">
-              <button class="assistant-card" data-prompt="Помоги мне спланировать сегодняшний день">
-                <span>◷</span><div><b>Сегодня</b><small>Планы и приоритеты</small></div><i>↗</i>
+            <div class="memory-control"><div class="memory-control-head"><div><p class="eyebrow">MEMORY</p><b>Память Miyori</b><small id="memoryContextStatus">Загрузка контекста…</small></div><button class="secondary" id="openMemoryButton" type="button">Управлять</button></div><div class="memory-chips" id="memoryChips"></div></div><div class="assistant-cards">
+              <button class="assistant-card" data-memory-category="projects">
+                <span>▦</span><div><b>Проекты</b><small>Контекст активных проектов</small></div><i>＋</i>
               </button>
-              <button class="assistant-card" data-prompt="Покажи и помоги разобрать мои текущие задачи">
-                <span>✓</span><div><b>Мои задачи</b><small>Разобрать и выполнить</small></div><i>↗</i>
+              <button class="assistant-card" data-memory-category="work">
+                <span>◆</span><div><b>Работа</b><small>Рабочие правила и контекст</small></div><i>＋</i>
               </button>
-              <button class="assistant-card" data-prompt="Помоги продолжить работу над моими проектами">
-                <span>▦</span><div><b>Рабочий контекст</b><small>Проекты и материалы</small></div><i>↗</i>
+              <button class="assistant-card" data-memory-category="tasks">
+                <span>✓</span><div><b>Задачи</b><small>То, что нужно выполнить</small></div><i>＋</i>
               </button>
-              <button class="assistant-card" data-prompt="Что мне сейчас важно не забыть?">
-                <span>◇</span><div><b>Напоминания</b><small>Важное и предстоящее</small></div><i>↗</i>
+              <button class="assistant-card" data-memory-category="remember">
+                <span>◇</span><div><b>Запомнить</b><small>Важные заметки для Miyori</small></div><i>＋</i>
               </button>
             </div>
           </section>
@@ -103,6 +103,7 @@
         </div>
       </section>
 
+      <div class="memory-modal" id="memoryModal" hidden><div class="memory-modal-card"><div class="memory-modal-head"><div><p class="eyebrow">MIYORI MEMORY</p><h3>Память помощницы</h3><p>Вы сами решаете, что хранить и какие категории Miyori может использовать.</p></div><button id="closeMemoryButton" type="button">×</button></div><form id="memoryForm" class="memory-form"><select id="memoryCategory"><option value="projects">Проекты</option><option value="work">Работа</option><option value="tasks">Задачи</option><option value="remember">Запомнить</option><option value="preferences">Предпочтения</option><option value="people">Люди</option><option value="facts">Важные факты</option></select><textarea id="memoryText" rows="3" maxlength="2000" placeholder="Что Miyori должна помнить?"></textarea><button class="primary" type="submit">Сохранить в память</button></form><div class="memory-category-list" id="memoryCategoryList"></div><div class="memory-items" id="memoryItems"><p class="empty-state">Память пока пуста.</p></div></div></div>
       <section class="page" id="page-workspace"><div class="page-heading"><p class="eyebrow">WORKSPACE</p><h2>Рабочее пространство</h2><p>Проекты, документы, задачи и инструменты в единой рабочей среде.</p></div><div class="dashboard-grid"><article class="feature-card large"><span class="feature-icon">＋</span><h3>Новый проект</h3><p>Создайте отдельное пространство для задачи, команды или идеи.</p><button class="primary">Создать проект</button></article><article class="feature-card"><span class="feature-icon">▤</span><h3>Документы</h3><p>Центр рабочих материалов.</p></article><article class="feature-card"><span class="feature-icon">✓</span><h3>Задачи</h3><p>Планы и контроль выполнения.</p></article></div></section>
 
       <section class="page" id="page-home"><div class="page-heading"><p class="eyebrow">HOME</p><h2>Домашнее пространство</h2><p>Персональные сценарии, заметки и будущая домашняя автоматизация.</p></div><div class="dashboard-grid"><article class="feature-card large"><span class="feature-icon">⌂</span><h3>Мой дом</h3><p>Локальная персональная среда Miyori Kitsune.</p><button class="primary">Настроить пространство</button></article><article class="feature-card"><span class="feature-icon">◇</span><h3>Заметки</h3><p>Быстрые личные записи.</p></article><article class="feature-card"><span class="feature-icon">⌁</span><h3>Сценарии</h3><p>Автоматизация повседневных действий.</p></article></div></section>
