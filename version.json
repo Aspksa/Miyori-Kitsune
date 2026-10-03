@@ -1,5 +1,16 @@
 {
-  "version": "0.2.1",
+  "version": "0.3.0",
   "channel": "stable",
-  "repository": "Aspksa/Miyori-Kitsune"
+  "repository": "Aspksa/Miyori-Kitsune",
+  "components": {
+    "core": "0.3.0",
+    "interface": "0.3.0",
+    "updater": "0.3.0",
+    "chat": "0.2.0",
+    "workspace": "0.2.0",
+    "home": "0.2.0",
+    "settings": "0.2.0",
+    "account": "0.2.0",
+    "mobile": "0.1.0"
+  }
 }
