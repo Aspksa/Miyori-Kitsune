@@ -95,7 +95,7 @@ async function openChatSession(id,closePanel=true){
     const data=await api("/api/chat/session?id="+encodeURIComponent(id));
     chatSessionId=data.session.id;
     localStorage.setItem("miyoriActiveChat",chatSessionId);
-    document.getElementById("chatSessionLabel").textContent=(data.session.title||"Диалог")+" · "+(data.session.messages?.length||0)+" сообщений";
+    document.getElementById("chatSessionLabel").textContent=data.session.title||"Диалог";
     renderSessionMessages(data.session);
     chatSessions=chatSessions.map(x=>x.id===chatSessionId?{...x,title:data.session.title,updated_at:data.session.updated_at,message_count:data.session.messages?.length||0}:x);
     renderChatHistory();
