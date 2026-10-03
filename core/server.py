@@ -12,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from updater import UpdateError, apply_update, check_update, local_version
+from updater import UpdateError, apply_update, check_update, local_manifest, local_version
 
 APP_NAME = "Miyori Kitsune"
 APP_VERSION = local_version()
@@ -82,6 +82,7 @@ class MiyoriHandler(BaseHTTPRequestHandler):
                 "ok": True,
                 "app": APP_NAME,
                 "version": APP_VERSION,
+                "components": local_manifest().get("components", {}),
                 "portable": True,
                 "root": str(ROOT),
                 "time": int(time.time()),
@@ -92,6 +93,7 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             self._json({
                 "app": APP_NAME,
                 "version": APP_VERSION,
+                "components": local_manifest().get("components", {}),
                 "repository": "Aspksa/Miyori-Kitsune",
                 "menu": ["account", "chat", "workspace", "home", "settings", "updates", "mobile"],
             })
