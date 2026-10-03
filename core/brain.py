@@ -8,7 +8,12 @@ from pathlib import Path
 
 from assistant_gateway import build_context, capability_manifest, execute_action
 from brain_runtime import InternalPlannerRuntime
+from cognitive_loop import conclude, perceive
 from entities import get_project, list_projects, list_tasks
+from identity import get_identity
+from learning import observe
+from skills import registry as skill_registry
+from world_model import snapshot as world_snapshot
 
 ROOT = Path(__file__).resolve().parent.parent
 BRAIN_DIR = ROOT / "data" / "brain"
@@ -78,6 +83,12 @@ def status() -> dict:
         "model_runtime_version": MODEL_RUNTIME.version,
         "ready": MODEL_RUNTIME.available(),
         "external_model": False,
+        "identity": get_identity(),
+        "skills": skill_registry(),
+        "world_model": {
+            "nodes": len(world_snapshot().get("nodes", {})),
+            "edges": len(world_snapshot().get("edges", [])),
+        },
         "capabilities": capability_manifest(),
     }
 
@@ -201,8 +212,9 @@ def think(message: str, session_id: str = "default", project_id: str | None = No
         raise ValueError("Пустой запрос.")
 
     _append_session(session_id, "user", message, {"project_id": project_id, "task_id": task_id})
-    base_context = build_context(project_id=project_id, task_id=task_id)
-    runtime_output = MODEL_RUNTIME.infer(message, base_context, capability_manifest())
+    perception = perceive(message, project_id=project_id, task_id=task_id)
+    base_context = perception["context"]
+    runtime_output = MODEL_RUNTIME.infer(message, base_context, perception["capabilities"])
     plan = _plan(message, project_id=project_id)
     plan["runtime"] = runtime_output.metadata or {}
     action_results = []
@@ -217,7 +229,8 @@ def think(message: str, session_id: str = "default", project_id: str | None = No
         action_results.append(result)
         if result.get("requires_confirmation"):
             response = "Это действие требует подтверждения."
-            _append_session(session_id, "assistant", response, {"plan": plan, "actions": action_results})
+            reflection = conclude(perception, plan.get("intent", "unknown"), plan.get("actions", []), "requires_confirmation")
+            _append_session(session_id, "assistant", response, {"plan": plan, "actions": action_results, "reflection": reflection})
             _event("requires_confirmation", {"message": message, "plan": plan, "actions": action_results})
             return {
                 "ok": False,
@@ -230,7 +243,11 @@ def think(message: str, session_id: str = "default", project_id: str | None = No
 
     response = _render(plan, action_results)
     context = build_context(project_id=project_id, task_id=task_id)
-    _append_session(session_id, "assistant", response, {"intent": plan.get("intent"), "actions": action_results})
+    reflection = conclude(perception, plan.get("intent", "unknown"), plan.get("actions", []), "success")
+    learning_item = None
+    if plan.get("intent") not in {"conversation", "task.list", "project.inspect"}:
+        learning_item = observe(plan.get("intent", "unknown"), "Action cycle completed successfully.", source="brain-cycle")
+    _append_session(session_id, "assistant", response, {"intent": plan.get("intent"), "actions": action_results, "reflection": reflection, "learning": learning_item})
     _event("thought", {"message": message, "intent": plan.get("intent"), "actions": action_results})
 
     return {
@@ -239,5 +256,7 @@ def think(message: str, session_id: str = "default", project_id: str | None = No
         "intent": plan.get("intent"),
         "actions": action_results,
         "context": context,
+        "reflection": reflection,
+        "learning": learning_item,
         "brain": status(),
     }
