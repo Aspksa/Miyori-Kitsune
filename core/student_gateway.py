@@ -86,7 +86,7 @@ def prepare_for_evaluation() -> dict:
     return item
 
 
-def promote_current(approved: bool = False, min_score: float = 0.66) -> dict:
+def promote_current(approved: bool = False, min_score: float = 0.75) -> dict:
     if not approved:
         raise PermissionError("Активация Miyori Student требует явного подтверждения.")
     item = current_model()
