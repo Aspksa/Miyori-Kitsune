@@ -46,7 +46,7 @@ def build_context(project_id: str | None = None, task_id: str | None = None) -> 
     tasks = list_tasks(project_id=project_id) if project_id else list_tasks()
     selected_project = get_project(project_id) if project_id else None
     selected_task = get_task(task_id) if task_id else None
-    memory = active_context()
+    memory = active_context(project_id=project_id, task_id=task_id)
 
     return {
         "project": selected_project,
@@ -103,7 +103,7 @@ def execute_action(action: str, arguments: dict | None = None, actor: str = "miy
             target_id = str(arguments.get("id", ""))
             result = {"deleted": delete_task(target_id)}
         elif action == "memory.add":
-            result = add_memory(arguments.get("category", "remember"), arguments.get("text", ""))
+            result = add_memory(arguments.get("category", "remember"), arguments.get("text", ""), arguments.get("entity_type"), arguments.get("entity_id"))
             target_id = result["id"]
         else:
             raise ValueError("Неизвестное действие.")
