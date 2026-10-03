@@ -175,9 +175,10 @@ function renderBrainOverview(data){
   const skills=data.skills||{};
   const learning=data.learning||{};
   const teacher=data.teacher||((data.brain||{}).teacher)||{};
+  const student=data.student||((data.brain||{}).student)||{};
   const memory=data.memory_engine||{};
   const runtime=(data.brain||{}).runtime_state||{};
-  document.getElementById("brainStatusVersion").textContent="v"+((data.brain||{}).version||"—");
+  document.getElementById("brainStatusVersion").textContent=student.stage==="active"?"Student v"+(student.version||"—"):"v"+((data.brain||{}).version||"—");
   const memoryEl=document.getElementById("brainMemoryStatus");
   const indexed=Number(memory.index_items||memory.vector_index?.index_items||0);
   memoryEl.textContent=indexed?indexed+" векторов":"гибридная";
@@ -187,7 +188,7 @@ function renderBrainOverview(data){
   const teacherEl=document.getElementById("brainTeacherStatus");
   teacherEl.textContent=teacher.configured?(teacher.enabled?(teacher.auto_review?"автопроверка":"готов"):"выключен"):"не настроен";
   teacherEl.classList.toggle("ok",!!(teacher.configured&&teacher.enabled));
-  document.getElementById("brainRuntimeState").textContent=runtime.neural?"MIYORI · NEURAL":"MIYORI · PLANNER";
+  document.getElementById("brainRuntimeState").textContent=runtime.runtime==="cloud_ml_inference"?"MIYORI · STUDENT":(runtime.neural?"MIYORI · NEURAL":"MIYORI · PLANNER");
 }
 
 function brainOverviewText(data){
@@ -295,7 +296,8 @@ async function sendBrainMessage(value,confirmed=false,echoUser=true){
     if(!response.ok||data.ok===false)throw new Error(data.error||"Ошибка Brain");
     const pipeline=data.pipeline||{};
     const trace=[
-      pipeline.student_runtime?"мозг: "+pipeline.student_runtime:null,
+      pipeline.student_runtime?(pipeline.student_active?"мозг: Miyori Student":"мозг: "+pipeline.student_runtime):null,
+      pipeline.fallback_from?"fallback: "+pipeline.fallback_from:null,
       pipeline.memory_retrieval?"память: "+pipeline.memory_retrieval:null,
       pipeline.teacher_reviewed?"Teacher: проверено":(pipeline.teacher_error?"Teacher: ошибка":null)
     ].filter(Boolean);
@@ -484,21 +486,55 @@ function renderDevices(devices=[]){
 function renderCloudru(cloudru={}){
   const trainingConfigured=!!(cloudru.training_configured??cloudru.configured);
   const teacherConfigured=!!cloudru.foundation_configured;
+  const studentConfigured=!!cloudru.student_configured;
   document.getElementById("cloudruKeyId").value=cloudru.key_id||"";
   document.getElementById("cloudruWorkspaceId").value=cloudru.workspace_id||"";
   document.getElementById("cloudruRegion").value=cloudru.region||"SR006";
   document.getElementById("cloudruKeySecret").value="";
   document.getElementById("cloudruApiKey").value="";
   document.getElementById("cloudruFoundationApiKey").value="";
+  document.getElementById("cloudruStudentApiKey").value="";
   document.getElementById("cloudruTeacherModel").value=cloudru.teacher_model||"openai/gpt-oss-120b";
+  document.getElementById("cloudruStudentEndpoint").value=cloudru.student_endpoint||"";
+  document.getElementById("cloudruStudentModel").value=cloudru.student_model||"Qwen/Qwen3-8B";
+  document.getElementById("cloudruStudentVersion").value=cloudru.student_version||"0.1.0";
+  document.getElementById("cloudruStudentEnabled").checked=!!cloudru.student_enabled;
   document.getElementById("cloudruTeacherEnabled").checked=cloudru.teacher_enabled!==false;
   document.getElementById("cloudruTeacherAutoReview").checked=!!cloudru.teacher_auto_review;
   document.getElementById("cloudruKeySecret").placeholder=cloudru.secret_saved?"Секрет сохранён — оставьте пустым, чтобы не менять":"Введите Key Secret";
   document.getElementById("cloudruApiKey").placeholder=cloudru.api_key_saved?"x-api-key сохранён — оставьте пустым, чтобы не менять":"Введите x-api-key";
   document.getElementById("cloudruFoundationApiKey").placeholder=cloudru.foundation_api_key_saved?"Foundation API Key сохранён — оставьте пустым, чтобы не менять":"Введите Foundation Models API Key";
+  document.getElementById("cloudruStudentApiKey").placeholder=cloudru.student_api_key_saved?"Student API Token сохранён — оставьте пустым, чтобы не менять":"Введите ML Inference API Token";
   const state=document.getElementById("cloudruConnectionState");
-  state.textContent=teacherConfigured?(trainingConfigured?"Teacher + GPU":"Teacher готов"):(trainingConfigured?"GPU готов":"Не настроено");
-  state.classList.toggle("cloudru-ready",teacherConfigured||trainingConfigured);
+  const ready=[teacherConfigured?"Teacher":null,studentConfigured?"Student":null,trainingConfigured?"GPU":null].filter(Boolean);
+  state.textContent=ready.length?ready.join(" + "):"Не настроено";
+  state.classList.toggle("cloudru-ready",ready.length>0);
+}
+
+function renderStudentStatus(student={}){
+  const state=document.getElementById("cloudruStudentState");
+  if(!state)return;
+  const stage=student.stage||"unregistered";
+  const score=student.evaluation_score;
+  const configured=!!student.configured;
+  state.textContent=configured?(stage+(score!=null?" · score "+Number(score).toFixed(2):"")):"Не настроен";
+  state.classList.toggle("student-active",stage==="active");
+  const evaluate=document.getElementById("evaluateCloudStudentButton");
+  const activate=document.getElementById("activateCloudStudentButton");
+  if(evaluate)evaluate.disabled=!configured;
+  if(activate)activate.disabled=!(configured&&["testing","approved"].includes(stage)&&Number(score||0)>=0.66);
+}
+
+async function loadStudentStatus(){
+  try{
+    const data=await api("/api/brain/student");
+    renderStudentStatus(data);
+    return data;
+  }catch(error){
+    const state=document.getElementById("cloudruStudentState");
+    if(state)state.textContent="Недоступно";
+    return null;
+  }
 }
 
 function renderAccount(data){
@@ -516,6 +552,7 @@ function renderAccount(data){
   document.getElementById("profileId").textContent=String(profile.profile_id||"—").slice(0,8);
   document.getElementById("syncState").textContent=profile.sync_enabled?"Включена":"Выключена";
   if(data.cloudru)renderCloudru(data.cloudru);
+  loadStudentStatus();
   renderDevices(data.devices||[]);
   const pairing=data.pairing||{};
   if(pairing.active){
@@ -559,13 +596,56 @@ document.getElementById("cloudruForm").addEventListener("submit",async event=>{
     foundation_api_key:document.getElementById("cloudruFoundationApiKey").value,
     teacher_model:document.getElementById("cloudruTeacherModel").value.trim()||"openai/gpt-oss-120b",
     teacher_enabled:document.getElementById("cloudruTeacherEnabled").checked,
-    teacher_auto_review:document.getElementById("cloudruTeacherAutoReview").checked
+    teacher_auto_review:document.getElementById("cloudruTeacherAutoReview").checked,
+    student_endpoint:document.getElementById("cloudruStudentEndpoint").value.trim(),
+    student_api_key:document.getElementById("cloudruStudentApiKey").value,
+    student_model:document.getElementById("cloudruStudentModel").value.trim()||"Qwen/Qwen3-8B",
+    student_version:document.getElementById("cloudruStudentVersion").value.trim()||"0.1.0",
+    student_enabled:document.getElementById("cloudruStudentEnabled").checked
   };
   try{
     const data=await api("/api/cloudru/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
     renderCloudru(data.cloudru||{});
+    if(data.student)await loadStudentStatus();
     status.textContent="Сохранено локально";
   }catch(error){status.textContent=error.message;}
+});
+
+document.getElementById("testCloudStudentButton").addEventListener("click",async()=>{
+  const button=document.getElementById("testCloudStudentButton");
+  const status=document.getElementById("cloudruSaveStatus");
+  button.disabled=true;status.textContent="Проверяю Miyori Student…";
+  try{
+    const data=await api("/api/cloudru/student/test",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+    status.textContent="Student отвечает · "+data.latency_ms+" мс"+(data.reply?" · "+data.reply:"");
+    await Promise.all([loadStudentStatus(),loadBrainOverview(false)]);
+  }catch(error){status.textContent=error.message;}
+  finally{button.disabled=false;}
+});
+
+document.getElementById("evaluateCloudStudentButton").addEventListener("click",async()=>{
+  const button=document.getElementById("evaluateCloudStudentButton");
+  const status=document.getElementById("cloudruSaveStatus");
+  button.disabled=true;status.textContent="Оцениваю Student candidate…";
+  try{
+    const data=await api("/api/brain/student/evaluate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project_id:activeProjectId||null})});
+    status.textContent="Evaluation: "+data.report.passed+"/"+data.report.total+" · score "+Number(data.report.score||0).toFixed(2);
+    await Promise.all([loadStudentStatus(),loadBrainOverview(false)]);
+  }catch(error){status.textContent=error.message;}
+  finally{button.disabled=false;}
+});
+
+document.getElementById("activateCloudStudentButton").addEventListener("click",async()=>{
+  if(!confirm("Активировать эту версию Miyori Student как основной мозг для обычного диалога? Internal planner останется аварийным fallback."))return;
+  const button=document.getElementById("activateCloudStudentButton");
+  const status=document.getElementById("cloudruSaveStatus");
+  button.disabled=true;status.textContent="Активирую Miyori Student…";
+  try{
+    const data=await api("/api/brain/student/promote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({approved:true,min_score:0.66})});
+    status.textContent="Miyori Student активирован";
+    await Promise.all([loadStudentStatus(),loadBrainOverview(false)]);
+  }catch(error){status.textContent=error.message;}
+  finally{button.disabled=false;}
 });
 
 document.getElementById("testCloudTeacherButton").addEventListener("click",async()=>{
