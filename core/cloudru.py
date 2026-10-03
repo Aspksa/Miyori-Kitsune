@@ -97,8 +97,33 @@ def save_credentials(payload: dict) -> dict:
     api_key = str(payload.get("api_key", "")).strip()
     key_secret = str(payload.get("key_secret", "")).strip()
     foundation_api_key = str(payload.get("foundation_api_key", "")).strip()
+
+    student_version = str(
+        payload.get("student_version", current.get("student_version", DEFAULT_STUDENT_VERSION))
+    ).strip() or DEFAULT_STUDENT_VERSION
+    student_configs = current.get("student_configs", {})
+    if not isinstance(student_configs, dict):
+        student_configs = {}
+    existing_student = student_configs.get(student_version, {})
+    if not isinstance(existing_student, dict):
+        existing_student = {}
+
+    same_legacy_version = str(current.get("student_version", DEFAULT_STUDENT_VERSION)) == student_version
+    legacy_endpoint = current.get("student_endpoint", "") if same_legacy_version else ""
+    legacy_key = current.get("student_api_key", "") if same_legacy_version else ""
+    legacy_model = current.get("student_model", DEFAULT_STUDENT_MODEL) if same_legacy_version else DEFAULT_STUDENT_MODEL
+    legacy_enabled = current.get("student_enabled", False) if same_legacy_version else False
+
+    student_endpoint = str(
+        payload.get("student_endpoint", existing_student.get("endpoint", legacy_endpoint))
+    ).strip()
     student_api_key = str(payload.get("student_api_key", "")).strip()
-    student_endpoint = str(payload.get("student_endpoint", current.get("student_endpoint", ""))).strip()
+    student_model = str(
+        payload.get("student_model", existing_student.get("model", legacy_model))
+    ).strip() or DEFAULT_STUDENT_MODEL
+    student_enabled = bool(
+        payload.get("student_enabled", existing_student.get("enabled", legacy_enabled))
+    )
 
     data = {
         "key_id": key_id,
@@ -111,20 +136,40 @@ def save_credentials(payload: dict) -> dict:
         "teacher_enabled": bool(payload.get("teacher_enabled", current.get("teacher_enabled", True))),
         "teacher_auto_review": bool(payload.get("teacher_auto_review", current.get("teacher_auto_review", False))),
         "student_endpoint": student_endpoint,
-        "student_model": str(payload.get("student_model", current.get("student_model", DEFAULT_STUDENT_MODEL))).strip() or DEFAULT_STUDENT_MODEL,
-        "student_version": str(payload.get("student_version", current.get("student_version", DEFAULT_STUDENT_VERSION))).strip() or DEFAULT_STUDENT_VERSION,
-        "student_enabled": bool(payload.get("student_enabled", current.get("student_enabled", False))),
+        "student_model": student_model,
+        "student_version": student_version,
+        "student_enabled": student_enabled,
     }
     data["api_key"] = _dpapi_encrypt(api_key) if api_key else current.get("api_key", "")
     data["key_secret"] = _dpapi_encrypt(key_secret) if key_secret else current.get("key_secret", "")
     data["foundation_api_key"] = _dpapi_encrypt(foundation_api_key) if foundation_api_key else current.get("foundation_api_key", "")
-    data["student_api_key"] = _dpapi_encrypt(student_api_key) if student_api_key else current.get("student_api_key", "")
 
-    if data["student_endpoint"]:
-        data["student_endpoint"] = _normalize_student_endpoint(data["student_endpoint"])
-    student_values = [data.get("student_endpoint"), data.get("student_api_key")]
+    saved_student_key = (
+        _dpapi_encrypt(student_api_key)
+        if student_api_key
+        else existing_student.get("api_key", legacy_key)
+    )
+    if student_endpoint:
+        student_endpoint = _normalize_student_endpoint(student_endpoint)
+        data["student_endpoint"] = student_endpoint
+
+    student_values = [student_endpoint, saved_student_key]
     if any(student_values) and not all(student_values):
         raise ValueError("Для Miyori Student укажите и ML Inference endpoint, и API Token.")
+
+    if all(student_values):
+        student_configs = dict(student_configs)
+        student_configs[student_version] = {
+            "endpoint": student_endpoint,
+            "model": student_model,
+            "api_key": saved_student_key,
+            "enabled": student_enabled,
+            "updated_at": int(time.time()),
+        }
+        data["student_api_key"] = saved_student_key
+    else:
+        data["student_api_key"] = ""
+    data["student_configs"] = student_configs
 
     training_values = [data.get("key_id"), data.get("key_secret"), data.get("workspace_id"), data.get("api_key")]
     if any(training_values) and not all(training_values):
@@ -136,16 +181,43 @@ def save_credentials(payload: dict) -> dict:
     return credentials_status()
 
 
+def _student_config_status(data: dict, version: str) -> dict:
+    configs = data.get("student_configs", {})
+    config = configs.get(version, {}) if isinstance(configs, dict) else {}
+    if not isinstance(config, dict):
+        config = {}
+    if not config and str(data.get("student_version", DEFAULT_STUDENT_VERSION)) == str(version):
+        config = {
+            "endpoint": data.get("student_endpoint", ""),
+            "model": data.get("student_model", DEFAULT_STUDENT_MODEL),
+            "api_key": data.get("student_api_key", ""),
+            "enabled": data.get("student_enabled", False),
+            "updated_at": data.get("updated_at", 0),
+        }
+    return {
+        "configured": bool(config.get("endpoint") and config.get("api_key")),
+        "enabled": bool(config.get("enabled", False)),
+        "endpoint": str(config.get("endpoint", "")),
+        "model": str(config.get("model", DEFAULT_STUDENT_MODEL) or DEFAULT_STUDENT_MODEL),
+        "version": str(version),
+        "api_key_saved": bool(config.get("api_key")),
+        "updated_at": int(config.get("updated_at", 0) or 0),
+    }
+
+
 def credentials_status() -> dict:
     data = _read_json(CREDENTIALS_FILE, {})
     training_configured = all(data.get(k) for k in ("key_id", "key_secret", "workspace_id", "api_key"))
     foundation_configured = bool(data.get("foundation_api_key"))
-    student_configured = bool(data.get("student_endpoint") and data.get("student_api_key"))
+    student_version = str(data.get("student_version", DEFAULT_STUDENT_VERSION) or DEFAULT_STUDENT_VERSION)
+    student = _student_config_status(data, student_version)
+    configs = data.get("student_configs", {})
+    versions = sorted(str(key) for key, value in configs.items() if isinstance(value, dict)) if isinstance(configs, dict) else []
     return {
         "configured": bool(training_configured),
         "training_configured": bool(training_configured),
         "foundation_configured": foundation_configured,
-        "student_configured": student_configured,
+        "student_configured": student["configured"],
         "key_id": str(data.get("key_id", "")),
         "workspace_id": str(data.get("workspace_id", "")),
         "region": str(data.get("region", "SR006")),
@@ -155,11 +227,12 @@ def credentials_status() -> dict:
         "teacher_model": str(data.get("teacher_model", DEFAULT_TEACHER_MODEL) or DEFAULT_TEACHER_MODEL),
         "teacher_enabled": bool(data.get("teacher_enabled", True)),
         "teacher_auto_review": bool(data.get("teacher_auto_review", False)),
-        "student_endpoint": str(data.get("student_endpoint", "")),
-        "student_model": str(data.get("student_model", DEFAULT_STUDENT_MODEL) or DEFAULT_STUDENT_MODEL),
-        "student_version": str(data.get("student_version", DEFAULT_STUDENT_VERSION) or DEFAULT_STUDENT_VERSION),
-        "student_enabled": bool(data.get("student_enabled", False)),
-        "student_api_key_saved": bool(data.get("student_api_key")),
+        "student_endpoint": student["endpoint"],
+        "student_model": student["model"],
+        "student_version": student["version"],
+        "student_enabled": student["enabled"],
+        "student_api_key_saved": student["api_key_saved"],
+        "student_versions": versions,
         "foundation_api_base": FOUNDATION_API_BASE,
         "storage": "windows-dpapi" if platform.system() == "Windows" else "local-file-0600",
         "updated_at": int(data.get("updated_at", 0) or 0),
@@ -266,16 +339,33 @@ def _normalize_student_endpoint(value: str) -> str:
     return f"https://{parsed.netloc}{path}"
 
 
-def _student_credentials() -> dict:
+def _student_credentials(version: str | None = None) -> dict:
     data = _read_json(CREDENTIALS_FILE, {})
-    if not (data.get("student_endpoint") and data.get("student_api_key")):
-        raise CloudRuError("Miyori Student не настроен. Укажите ML Inference endpoint и API Token.")
+    selected_version = str(version or data.get("student_version", DEFAULT_STUDENT_VERSION) or DEFAULT_STUDENT_VERSION)
+    status = _student_config_status(data, selected_version)
+    if not status["configured"]:
+        raise CloudRuError(f"Miyori Student {selected_version} не настроен. Укажите ML Inference endpoint и API Token.")
+    configs = data.get("student_configs", {})
+    config = configs.get(selected_version, {}) if isinstance(configs, dict) else {}
+    encrypted_key = config.get("api_key", "") if isinstance(config, dict) else ""
+    if not encrypted_key and str(data.get("student_version", DEFAULT_STUDENT_VERSION)) == selected_version:
+        encrypted_key = data.get("student_api_key", "")
     return {
-        "endpoint": _normalize_student_endpoint(data["student_endpoint"]),
-        "api_key": _dpapi_decrypt(data["student_api_key"]),
-        "model": str(data.get("student_model", DEFAULT_STUDENT_MODEL) or DEFAULT_STUDENT_MODEL),
-        "version": str(data.get("student_version", DEFAULT_STUDENT_VERSION) or DEFAULT_STUDENT_VERSION),
-        "enabled": bool(data.get("student_enabled", False)),
+        "endpoint": _normalize_student_endpoint(status["endpoint"]),
+        "api_key": _dpapi_decrypt(encrypted_key),
+        "model": status["model"],
+        "version": selected_version,
+        "enabled": status["enabled"],
+    }
+
+
+def student_version_status(version: str) -> dict:
+    data = _read_json(CREDENTIALS_FILE, {})
+    status = _student_config_status(data, str(version))
+    return {
+        **status,
+        "provider": "cloudru-ml-inference",
+        "role": "miyori-student",
     }
 
 
@@ -288,20 +378,21 @@ def student_status() -> dict:
         "model": status["student_model"],
         "version": status["student_version"],
         "api_key_saved": status["student_api_key_saved"],
+        "saved_versions": status.get("student_versions", []),
         "provider": "cloudru-ml-inference",
         "role": "miyori-student",
     }
 
 
-def _student_headers() -> dict:
-    creds = _student_credentials()
+def _student_headers(version: str | None = None) -> dict:
+    creds = _student_credentials(version)
     return {"Authorization": "Bearer " + creds["api_key"]}
 
 
-def student_chat(messages: list[dict], model: str | None = None, max_tokens: int = 800, temperature: float = 0.55) -> dict:
-    creds = _student_credentials()
+def student_chat(messages: list[dict], model: str | None = None, max_tokens: int = 800, temperature: float = 0.55, version: str | None = None) -> dict:
+    creds = _student_credentials(version)
     if not creds["enabled"]:
-        raise CloudRuError("Miyori Student отключён в Личном кабинете.")
+        raise CloudRuError(f"Miyori Student {creds['version']} отключён в Личном кабинете.")
     payload = {
         "model": str(model or creds["model"]).strip() or DEFAULT_STUDENT_MODEL,
         "messages": messages,
@@ -312,7 +403,7 @@ def student_chat(messages: list[dict], model: str | None = None, max_tokens: int
     return _request(
         creds["endpoint"] + "/chat/completions",
         method="POST",
-        headers=_student_headers(),
+        headers=_student_headers(creds["version"]),
         payload=payload,
         timeout=120,
     )
@@ -331,6 +422,7 @@ def test_student_connection() -> dict:
         model=creds["model"],
         max_tokens=16,
         temperature=0.0,
+        version=creds["version"],
     )
     try:
         content = str(response.get("choices", [])[0].get("message", {}).get("content", "")).strip()
@@ -342,6 +434,7 @@ def test_student_connection() -> dict:
         "reply": content[:120],
         "status": student_status(),
     }
+
 
 
 def access_token() -> str:
