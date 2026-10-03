@@ -51,7 +51,7 @@ function renderChatHistory(){
       event.stopPropagation();
       const session=chatSessions.find(x=>x.id===row.dataset.chatSession);
       if(!session)return;
-      const action=prompt("Введите новое название. Чтобы удалить диалог, введите: удалить",session.title||"");
+      const action=window.prompt("Введите новое название. Чтобы удалить диалог, введите: удалить",session.title||"");
       if(action===null)return;
       if(action.trim().toLowerCase()==="удалить"){deleteChatSession(session.id);return;}
       if(action.trim())renameChatSession(session.id,action.trim());
