@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from cloudru import credentials_status as cloudru_status
+from embodiment import status as embodiment_status
 from identity import get_identity
 from learning import list_learning
+from model_registry import list_models, summary as model_summary
 from reflection import list_reflections
 from self_development import list_proposals
 from skills import registry
@@ -23,6 +25,8 @@ def architecture_state():
         "learning": list_learning(100),
         "reflections": list_reflections(100),
         "self_development": list_proposals(100),
+        "models": {"summary": model_summary(), "items": list_models()},
+        "embodiment": embodiment_status(),
         "training": {
             "cloudru": cloudru_status(),
             "datasets": list_datasets(20),
@@ -60,6 +64,8 @@ def overview_state():
             "count": len(proposals),
             "active": sum(1 for item in proposals if item.get("state") not in {"rejected", "applied", "rolled_back"}),
         },
+        "models": model_summary(),
+        "embodiment": embodiment_status(),
         "training": {
             "cloudru": cloud,
             "datasets": len(datasets),
