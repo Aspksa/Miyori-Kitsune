@@ -211,6 +211,18 @@
                 <div class="toggle-row"><span><b>Cloud Teacher включён</b><small>Разрешает ручную проверку и обучение</small></span><input type="checkbox" id="cloudruTeacherEnabled" checked></div>
                 <div class="toggle-row"><span><b>Автопроверка ответов</b><small>Платный запрос Teacher после каждого ответа Miyori</small></span><input type="checkbox" id="cloudruTeacherAutoReview"></div>
               </div>
+              <div class="cloud-section-title"><span>STUDENT / ML INFERENCE</span><b>Miyori Student</b><small>Отдельный облачный мозг самой Miyori. Позже здесь будут работать её дообученные веса/LoRA, а Teacher останется только учителем.</small></div>
+              <label class="cloud-wide">ML Inference endpoint<input id="cloudruStudentEndpoint" autocomplete="off" placeholder="https://...modelrun.inference.cloud.ru/v1"></label>
+              <label>Miyori Student model<input id="cloudruStudentModel" autocomplete="off" value="Qwen/Qwen3-8B" placeholder="Qwen/Qwen3-8B"></label>
+              <label>Версия Student<input id="cloudruStudentVersion" autocomplete="off" value="0.1.0" placeholder="0.1.0"></label>
+              <label class="cloud-wide">ML Inference API Token<input id="cloudruStudentApiKey" type="password" autocomplete="new-password" placeholder="Введите API Token или оставьте пустым, если уже сохранён"></label>
+              <div class="teacher-toggle-stack">
+                <div class="toggle-row"><span><b>Miyori Student включён</b><small>Разрешает Brain использовать активную Student-модель</small></span><input type="checkbox" id="cloudruStudentEnabled"></div>
+              </div>
+              <div class="student-lifecycle">
+                <div><span>Состояние Student</span><b id="cloudruStudentState">Не настроен</b></div>
+                <div class="student-actions"><button type="button" class="secondary" id="testCloudStudentButton">Проверить Student</button><button type="button" class="secondary" id="evaluateCloudStudentButton">Оценить candidate</button><button type="button" class="primary" id="activateCloudStudentButton">Активировать</button></div>
+              </div>
               <div class="cloud-section-title"><span>GPU TRAINING</span><b>Обучение Miyori Student</b><small>Эти поля нужны для training jobs; можно оставить пустыми, пока обучение не запускаем.</small></div>
               <label>Key ID<input id="cloudruKeyId" autocomplete="off" placeholder="Key ID"></label>
               <label>Key Secret<input id="cloudruKeySecret" type="password" autocomplete="new-password" placeholder="Введите или оставьте пустым, если уже сохранён"></label>
