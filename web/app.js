@@ -22,7 +22,19 @@ document.querySelectorAll("[data-prompt]").forEach(button=>button.addEventListen
 const prompt=document.getElementById("prompt");
 prompt.addEventListener("input",()=>{prompt.style.height="auto";prompt.style.height=Math.min(prompt.scrollHeight,180)+"px";});
 prompt.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();document.getElementById("composer").requestSubmit();}});
-document.getElementById("composer").addEventListener("submit",event=>{event.preventDefault();if(!prompt.value.trim())return;prompt.value="";prompt.style.height="auto";alert("Miyori готова как интерфейс личной помощницы. Следующий этап — подключение AI-модели, памяти и инструментов.");});
+document.getElementById("composer").addEventListener("submit",event=>{
+  event.preventDefault();
+  const value=prompt.value.trim();
+  if(!value)return;
+  const remember=value.match(/^запомни(?:,| что)?\s+(.+)/i);
+  if(remember){
+    document.getElementById("memoryText").value=remember[1];
+    openMemory("remember");
+    return;
+  }
+  prompt.value="";prompt.style.height="auto";
+  alert("Командный шлюз Miyori уже готов. После подключения собственной модели этот запрос будет преобразован в чтение контекста и разрешённые действия над проектами, задачами и памятью.");
+});
 
 async function api(url,options={}){
   const response=await fetch(url,{cache:"no-store",...options});
@@ -258,9 +270,114 @@ document.getElementById("memoryForm").addEventListener("submit",async e=>{
   e.preventDefault();
   const t=document.getElementById("memoryText");
   if(!t.value.trim())return;
-  const d=await api("/api/memory/add",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({category:document.getElementById("memoryCategory").value,text:t.value.trim()})});
+  const d=await api("/api/memory/add",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({category:document.getElementById("memoryCategory").value,text:t.value.trim(),entity_type:document.getElementById("memoryLink").value?"project":null,entity_id:document.getElementById("memoryLink").value||null})});
   t.value="";
   memoryState={...d,active_context:{count:activeMemoryCount(d)}};
   renderMemory();
+  await refreshActiveContext();
 });
 loadMemory();
+
+
+let workspaceProjects=[];
+let workspaceTasks=[];
+let activeProjectId=null;
+
+function entityEscape(v){return String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]));}
+function statusLabel(status){return ({active:"Активный",paused:"Пауза",completed:"Завершён",archived:"Архив",todo:"К выполнению",in_progress:"В работе",blocked:"Заблокировано",done:"Готово"}[status]||status);}
+function priorityLabel(p){return ({low:"Низкий",normal:"Обычный",high:"Высокий",critical:"Критический"}[p]||p);}
+
+function refreshProjectSelectors(){
+  const options='<option value="">Без проекта</option>'+workspaceProjects.map(p=>'<option value="'+p.id+'">'+entityEscape(p.name)+'</option>').join("");
+  const taskProject=document.getElementById("taskProject");if(taskProject)taskProject.innerHTML=options;
+  const memoryLink=document.getElementById("memoryLink");
+  if(memoryLink)memoryLink.innerHTML='<option value="">Общая память</option>'+workspaceProjects.map(p=>'<option value="'+p.id+'">Проект: '+entityEscape(p.name)+'</option>').join("");
+}
+
+function renderProjectList(){
+  const root=document.getElementById("projectList");
+  document.getElementById("projectCount").textContent=workspaceProjects.length;
+  if(!workspaceProjects.length){root.innerHTML='<p class="empty-state">Проектов пока нет.</p>';return;}
+  root.innerHTML=workspaceProjects.map(p=>'<button class="project-row '+(p.id===activeProjectId?"active":"")+'" data-project-id="'+p.id+'"><span>▦</span><div><b>'+entityEscape(p.name)+'</b><small>'+statusLabel(p.status)+'</small></div><i>›</i></button>').join("");
+  root.querySelectorAll("[data-project-id]").forEach(btn=>btn.addEventListener("click",()=>selectProject(btn.dataset.projectId)));
+}
+
+function renderTaskRows(root,tasks){
+  if(!tasks.length){root.innerHTML='<p class="empty-state">Задач пока нет.</p>';return;}
+  root.innerHTML=tasks.map(t=>'<div class="task-row"><button class="task-check '+(t.status==="done"?"done":"")+'" data-task-toggle="'+t.id+'" title="Изменить статус">'+(t.status==="done"?"✓":"")+'</button><div><b>'+entityEscape(t.title)+'</b><small>'+priorityLabel(t.priority)+(t.project_id?" · "+entityEscape((workspaceProjects.find(p=>p.id===t.project_id)||{}).name||"Проект"):"")+'</small></div><span>'+statusLabel(t.status)+'</span></div>').join("");
+  root.querySelectorAll("[data-task-toggle]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const task=workspaceTasks.find(t=>t.id===btn.dataset.taskToggle);if(!task)return;
+    await api("/api/task/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:task.id,changes:{status:task.status==="done"?"todo":"done"}})});
+    await loadWorkspace(activeProjectId);
+  }));
+}
+
+async function selectProject(id){
+  activeProjectId=id;
+  renderProjectList();
+  const data=await api("/api/project?id="+encodeURIComponent(id));
+  document.getElementById("projectDetailEmpty").hidden=true;
+  document.getElementById("projectDetail").hidden=false;
+  document.getElementById("projectDetailName").textContent=data.project.name;
+  document.getElementById("projectDetailDescription").textContent=data.project.description||"Описание пока не добавлено.";
+  document.getElementById("projectDetailStatus").textContent=statusLabel(data.project.status);
+  const summary=data.context?.summary||{};
+  document.getElementById("projectContextSummary").textContent=(data.tasks?.length||0)+" задач · "+(data.context?.memory?.count||0)+" записей памяти";
+  renderTaskRows(document.getElementById("projectTaskList"),data.tasks||[]);
+  refreshProjectSelectors();
+  document.getElementById("memoryLink").value=id;
+  await refreshActiveContext();
+}
+
+async function loadWorkspace(selectId=null){
+  try{
+    const [projectsData,tasksData]=await Promise.all([api("/api/projects"),api("/api/tasks")]);
+    workspaceProjects=projectsData.items||[];
+    workspaceTasks=tasksData.items||[];
+    document.getElementById("workspaceSummary").textContent=workspaceProjects.length+" проектов · "+workspaceTasks.filter(t=>t.status!=="done").length+" активных задач";
+    document.getElementById("taskCount").textContent=workspaceTasks.length;
+    renderProjectList();
+    renderTaskRows(document.getElementById("taskList"),workspaceTasks);
+    refreshProjectSelectors();
+    if(selectId&&workspaceProjects.some(p=>p.id===selectId))await selectProject(selectId);
+    else if(activeProjectId&&workspaceProjects.some(p=>p.id===activeProjectId))await selectProject(activeProjectId);
+  }catch(error){document.getElementById("workspaceSummary").textContent=error.message;}
+}
+
+async function refreshActiveContext(){
+  try{
+    const url=activeProjectId?"/api/context?project_id="+encodeURIComponent(activeProjectId):"/api/context";
+    const data=await api(url);
+    const root=document.getElementById("activeContextChips");
+    const chips=[];
+    if(data.project)chips.push("Проект: "+data.project.name);
+    if(data.tasks?.length)chips.push(data.tasks.filter(t=>t.status!=="done").length+" задач");
+    if(data.memory?.count)chips.push(data.memory.count+" записей памяти");
+    if(!chips.length)chips.push("Общий контекст");
+    root.innerHTML=chips.map(x=>'<i>'+entityEscape(x)+'</i>').join("");
+  }catch{}
+}
+
+function openEntityModal(id){document.getElementById(id).hidden=false;}
+function closeEntityModal(id){document.getElementById(id).hidden=true;}
+
+document.querySelectorAll("[data-close-modal]").forEach(btn=>btn.addEventListener("click",()=>closeEntityModal(btn.dataset.closeModal)));
+document.getElementById("newProjectButton").addEventListener("click",()=>openEntityModal("projectModal"));
+document.getElementById("newTaskButton").addEventListener("click",()=>{refreshProjectSelectors();openEntityModal("taskModal");});
+document.getElementById("projectAddTaskButton").addEventListener("click",()=>{refreshProjectSelectors();document.getElementById("taskProject").value=activeProjectId||"";openEntityModal("taskModal");});
+document.getElementById("refreshContextButton").addEventListener("click",refreshActiveContext);
+
+document.getElementById("projectForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const data=await api("/api/project/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:document.getElementById("projectName").value,description:document.getElementById("projectDescription").value})});
+  e.target.reset();closeEntityModal("projectModal");activeProjectId=data.project.id;await loadWorkspace(activeProjectId);
+});
+
+document.getElementById("taskForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  await api("/api/task/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:document.getElementById("taskTitle").value,project_id:document.getElementById("taskProject").value||null,priority:document.getElementById("taskPriority").value,description:document.getElementById("taskDescription").value})});
+  e.target.reset();closeEntityModal("taskModal");await loadWorkspace(activeProjectId);await refreshActiveContext();
+});
+
+loadWorkspace();
+refreshActiveContext();
