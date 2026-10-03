@@ -521,8 +521,10 @@ function renderStudentStatus(student={}){
   state.classList.toggle("student-active",stage==="active");
   const evaluate=document.getElementById("evaluateCloudStudentButton");
   const activate=document.getElementById("activateCloudStudentButton");
+  const rollback=document.getElementById("rollbackCloudStudentButton");
   if(evaluate)evaluate.disabled=!configured;
   if(activate)activate.disabled=!(configured&&["testing","approved"].includes(stage)&&Number(score||0)>=0.75);
+  if(rollback)rollback.disabled=!(stage==="active"&&student.rollback_available);
 }
 
 async function loadStudentStatus(){
@@ -643,6 +645,19 @@ document.getElementById("activateCloudStudentButton").addEventListener("click",a
   try{
     const data=await api("/api/brain/student/promote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({approved:true,min_score:0.75})});
     status.textContent="Miyori Student активирован";
+    await Promise.all([loadStudentStatus(),loadBrainOverview(false)]);
+  }catch(error){status.textContent=error.message;}
+  finally{button.disabled=false;}
+});
+
+document.getElementById("rollbackCloudStudentButton").addEventListener("click",async()=>{
+  if(!confirm("Откатить активный мозг Miyori на предыдущую проверенную модель?"))return;
+  const button=document.getElementById("rollbackCloudStudentButton");
+  const status=document.getElementById("cloudruSaveStatus");
+  button.disabled=true;status.textContent="Откатываю модель Miyori…";
+  try{
+    const data=await api("/api/brain/student/rollback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({approved:true})});
+    status.textContent="Откат выполнен · активна "+(data.restored?.name||"предыдущая модель");
     await Promise.all([loadStudentStatus(),loadBrainOverview(false)]);
   }catch(error){status.textContent=error.message;}
   finally{button.disabled=false;}
