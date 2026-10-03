@@ -104,3 +104,43 @@ Sleep Engine не переписывает код и модель. Он конс
 - `POST /api/brain/development/transition`
 
 Эта версия является архитектурным фундаментом. Она не является доказательством сознания или биологической жизни и пока не содержит обученной нейросетевой модели; neural runtime подключается через существующий `BrainModelRuntime`.
+
+
+## Cloud.ru Training Connector
+
+Cloud.ru используется Miyori как внешняя вычислительная среда для тяжёлого обучения, а не как замена личности, памяти или Brain Architecture.
+
+Учётные данные настраиваются в Личном кабинете:
+- Key ID;
+- Key Secret;
+- Workspace ID;
+- x-api-key;
+- регион.
+
+Секреты хранятся в `data/secrets/cloudru.json`, который находится внутри исключённой из Git пользовательской директории `data/`. На Windows Key Secret и x-api-key дополнительно защищаются Windows DPAPI и не возвращаются обратно через API после сохранения.
+
+`core/cloudru.py` поддерживает:
+- получение access token через Distributed Train service_auth;
+- проверку соединения через список MT-конфигураций;
+- получение training configurations;
+- запуск `POST /public/v2/jobs`;
+- локальный журнал запущенных training jobs.
+
+`core/training_data.py` формирует локальный JSONL dataset-кандидат из:
+- learning items со стадией confirmed/retained/applied/reassessed;
+- достаточно уверенных reflection records;
+- полезных пар user → Miyori из внутренних сессий Brain.
+
+Сырые данные не отправляются в Cloud.ru автоматически. Dataset сначала создаётся локально со статусом `candidate`.
+
+API:
+- `GET /api/cloudru/status`
+- `POST /api/cloudru/save`
+- `POST /api/cloudru/test`
+- `GET /api/cloudru/configs`
+- `GET /api/cloudru/jobs`
+- `GET /api/training/datasets`
+- `POST /api/training/dataset/build`
+- `POST /api/cloudru/training/submit`
+
+Запуск GPU training job является отдельным явным действием. Фоновый Learning Engine и Sleep Engine не запускают платные Cloud.ru-задачи самостоятельно.
