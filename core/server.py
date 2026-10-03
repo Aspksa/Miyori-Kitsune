@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from account import create_pairing, get_profile, list_devices, pairing_status, revoke_device, save_profile
-from cloudru import CloudRuError, credentials_status as cloudru_status, job_history as cloudru_job_history, list_training_configs as cloudru_training_configs, save_credentials as save_cloudru_credentials, submit_training_job as cloudru_submit_training_job, test_connection as cloudru_test_connection, test_foundation_connection as cloudru_test_foundation_connection
+from cloudru import CloudRuError, credentials_status as cloudru_status, job_history as cloudru_job_history, list_training_configs as cloudru_training_configs, save_credentials as save_cloudru_credentials, submit_training_job as cloudru_submit_training_job, test_connection as cloudru_test_connection, test_foundation_connection as cloudru_test_foundation_connection, test_student_connection as cloudru_test_student_connection
 from training_data import build_dataset as build_training_dataset, list_datasets as list_training_datasets
 from assistant_gateway import build_context, capability_manifest, execute_action, state_snapshot
 from brain import create_session as brain_create_session, delete_session as brain_delete_session, get_session as brain_get_session, list_sessions as brain_list_sessions, rename_session as brain_rename_session, status as brain_status, think as brain_think
@@ -24,6 +24,7 @@ from neural_runtime import runtime_status as neural_runtime_status
 from semantic_memory import status as semantic_memory_status
 from brain_scheduler import start as start_brain_scheduler, stop as stop_brain_scheduler
 from self_development import list_proposals, propose as propose_development, transition as transition_development
+from student_gateway import prepare_for_evaluation as student_prepare_for_evaluation, promote_current as student_promote_current, register_current as student_register_current, status as student_status
 from teacher_gateway import list_feedback as teacher_feedback_list, mark_feedback as teacher_mark_feedback, review as teacher_review, status as teacher_status
 from entities import (
     audit_log,
@@ -204,6 +205,10 @@ class MiyoriHandler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/brain/memory/semantic":
             self._json({"ok": True, **semantic_memory_status()})
+            return
+
+        if parsed.path == "/api/brain/student":
+            self._json({"ok": True, **student_status()})
             return
 
         if parsed.path == "/api/brain/teacher":
@@ -437,7 +442,11 @@ class MiyoriHandler(BaseHTTPRequestHandler):
                 return
 
             if parsed.path == "/api/cloudru/save":
-                self._json({"ok": True, "cloudru": save_cloudru_credentials(payload)})
+                cloud = save_cloudru_credentials(payload)
+                student = None
+                if cloud.get("student_configured"):
+                    student = student_register_current()
+                self._json({"ok": True, "cloudru": cloud, "student": student})
                 return
 
             if parsed.path == "/api/cloudru/test":
@@ -446,6 +455,37 @@ class MiyoriHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/cloudru/foundation/test":
                 self._json({"ok": True, **cloudru_test_foundation_connection()})
+                return
+
+            if parsed.path == "/api/cloudru/student/test":
+                result = cloudru_test_student_connection()
+                student = student_register_current()
+                self._json({"ok": True, **result, "registry_model": student})
+                return
+
+            if parsed.path == "/api/brain/student/register":
+                self._json({"ok": True, "student": student_register_current()})
+                return
+
+            if parsed.path == "/api/brain/student/evaluate":
+                student = student_prepare_for_evaluation()
+                report = evaluate_brain_model(
+                    student["id"],
+                    context=build_context(
+                        project_id=payload.get("project_id"),
+                        task_id=payload.get("task_id"),
+                        query=str(payload.get("query", "Miyori Student evaluation")),
+                    ),
+                )
+                self._json({"ok": True, "student": student_status(), "report": report})
+                return
+
+            if parsed.path == "/api/brain/student/promote":
+                promoted = student_promote_current(
+                    approved=bool(payload.get("approved", False)),
+                    min_score=float(payload.get("min_score", 0.66) or 0.66),
+                )
+                self._json({"ok": True, "student": promoted, "status": student_status()})
                 return
 
             if parsed.path == "/api/brain/teacher/review":
