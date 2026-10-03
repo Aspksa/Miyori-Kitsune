@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from brain_runtime import BrainModelRuntime, InternalPlannerRuntime, ModelOutput
-from cloudru import student_chat, student_status as cloud_student_status
+from cloudru import student_chat, student_version_status
 from model_registry import BUILTIN_MODEL_ID, active_model, list_models
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -152,7 +152,7 @@ class CloudStudentRuntime:
 
     def available(self) -> bool:
         try:
-            cloud = cloud_student_status()
+            cloud = student_version_status(self.version)
             if not (cloud.get("configured") and cloud.get("enabled")):
                 self._error = "Cloud Student is not configured or enabled."
                 return False
@@ -212,6 +212,7 @@ class CloudStudentRuntime:
                 model=str(metadata.get("model_name") or "").strip() or None,
                 max_tokens=max(64, min(int(metadata.get("max_tokens", 900) or 900), 4000)),
                 temperature=float(metadata.get("temperature", 0.55) or 0.55),
+                version=self.version,
             )
             text = str(response.get("choices", [{}])[0].get("message", {}).get("content", "")).strip()
             if not text:
