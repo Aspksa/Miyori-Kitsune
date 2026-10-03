@@ -1,9 +1,9 @@
 {
-  "version": "0.8.0",
+  "version": "0.9.0",
   "channel": "stable",
   "repository": "Aspksa/Miyori-Kitsune",
   "components": {
-    "core": "0.8.0",
+    "core": "0.9.0",
     "interface": "0.7.0",
     "updater": "0.4.0",
     "chat": "0.6.0",
@@ -14,7 +14,15 @@
     "mobile": "0.2.0",
     "memory": "0.2.0",
     "assistant": "0.2.0",
-    "brain": "0.1.0"
+    "brain": "0.2.0",
+    "identity": "0.1.0",
+    "world_model": "0.1.0",
+    "reflection": "0.1.0",
+    "learning": "0.1.0",
+    "skills": "0.1.0",
+    "self_development": "0.1.0",
+    "safety_kernel": "0.1.0",
+    "sleep_engine": "0.1.0"
   },
   "dependencies": {
     "chat": {
@@ -46,10 +54,27 @@
       "memory": "0.2.0"
     },
     "brain": {
-      "core": "0.8.0",
+      "core": "0.9.0",
       "assistant": "0.2.0",
       "memory": "0.2.0",
-      "workspace": "0.4.0"
+      "workspace": "0.4.0",
+      "identity": "0.1.0",
+      "world_model": "0.1.0",
+      "reflection": "0.1.0",
+      "learning": "0.1.0",
+      "skills": "0.1.0",
+      "safety_kernel": "0.1.0"
+    },
+    "self_development": {
+      "core": "0.9.0",
+      "safety_kernel": "0.1.0"
+    },
+    "sleep_engine": {
+      "core": "0.9.0",
+      "reflection": "0.1.0",
+      "learning": "0.1.0",
+      "skills": "0.1.0",
+      "world_model": "0.1.0"
     }
   },
   "mobile_client": {
@@ -60,11 +85,12 @@
     "notes": "Отдельный пакет мобильного клиента будет публиковаться через GitHub Releases."
   },
   "changes": [
-    "Добавлен собственный backend-мозг Miyori Kitsune без изменений интерфейса.",
-    "Brain собирает контекст из Projects, Tasks и Memory и строит план действий.",
-    "Brain выполняет разрешённые действия через Action Gateway и сохраняет внутренние сессии.",
-    "Добавлены API /api/brain/status и /api/brain/think.",
-    "Добавлен сменный Model Runtime contract для будущей обученной модели Miyori.",
-    "Текущий runtime локальный и не зависит от внешнего AI API."
+    "Добавлена модульная Miyori Brain Architecture без изменений интерфейса.",
+    "Добавлены Identity, World Model, Reflection Engine, Learning Engine и Skills Registry.",
+    "Добавлен Cognitive Loop: perception → context → plan → action → outcome → reflection → learning.",
+    "Добавлен Sleep/Consolidation Engine с безопасным фоновым циклом.",
+    "Добавлен Self-Development Engine с предложениями улучшений вместо прямой перезаписи ядра.",
+    "Добавлен Safety Kernel: критические изменения требуют явного подтверждения, тестов и резервной копии.",
+    "Добавлены служебные API состояния Brain Architecture, сна и self-development proposals."
   ]
 }
