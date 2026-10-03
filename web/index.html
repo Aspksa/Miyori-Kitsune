@@ -176,6 +176,19 @@
             <button class="primary" id="createPairingButton">Создать код сопряжения</button>
           </article>
 
+          <article class="account-card cloudru-card">
+            <div class="card-title"><div><small>MIYORI TRAINING / CLOUD.RU</small><b>Вычислительная среда обучения</b></div><span class="account-status" id="cloudruConnectionState">Не настроено</span></div>
+            <p class="cloudru-note">Cloud.ru используется только как вычислительная среда для обучения Miyori. Секреты хранятся локально и не отправляются в GitHub.</p>
+            <form id="cloudruForm" class="profile-form">
+              <label>Key ID<input id="cloudruKeyId" autocomplete="off" placeholder="Key ID"></label>
+              <label>Key Secret<input id="cloudruKeySecret" type="password" autocomplete="new-password" placeholder="Введите или оставьте пустым, если уже сохранён"></label>
+              <label>Workspace ID<input id="cloudruWorkspaceId" autocomplete="off" placeholder="x-workspace-id"></label>
+              <label>x-api-key<input id="cloudruApiKey" type="password" autocomplete="new-password" placeholder="Введите или оставьте пустым, если уже сохранён"></label>
+              <label>Регион<input id="cloudruRegion" autocomplete="off" value="SR006" placeholder="SR006"></label>
+              <div class="account-actions"><button type="submit" class="primary">Сохранить Cloud.ru</button><button type="button" class="secondary" id="testCloudruButton">Проверить подключение</button><span id="cloudruSaveStatus"></span></div>
+            </form>
+          </article>
+
           <article class="account-card">
             <div class="card-title"><div><small>DATA & SECURITY</small><b>Безопасность и данные</b></div></div>
             <div class="account-info-list">
