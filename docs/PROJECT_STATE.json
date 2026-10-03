@@ -6,8 +6,8 @@
     "name": "Miyori Kitsune",
     "repository": "Aspksa/Miyori-Kitsune",
     "branch": "main",
-    "current_release": "0.12.0",
-    "latest_known_commit": "39eea8833110232ddfa93b81cb9271d440d075fe",
+    "current_release": "0.13.0",
+    "latest_known_commit": "fb9768388769467360fc87eda84995a9b87f21f6",
     "launcher": "MiyoriKitsune.bat",
     "runtime": "Python 3.10+ stdlib local HTTP server on 127.0.0.1",
     "primary_manifest": "version.json",
@@ -47,7 +47,9 @@
       "scheduler": "core/brain_scheduler.py",
       "self_development": "core/self_development.py",
       "safety_kernel": "core/safety_kernel.py",
-      "architecture_state": "core/brain_architecture.py"
+      "architecture_state": "core/brain_architecture.py",
+      "model_registry": "core/model_registry.py",
+      "embodiment": "core/embodiment.py"
     },
     "training": {
       "cloudru_connector": "core/cloudru.py",
@@ -76,10 +78,12 @@
     "cloudru_credentials": "data/secrets/cloudru.json",
     "training_datasets": "data/training/datasets/*.jsonl",
     "training_dataset_manifest": "data/training/datasets.json",
-    "cloudru_jobs": "data/training/cloudru-jobs.json"
+    "cloudru_jobs": "data/training/cloudru-jobs.json",
+    "model_registry": "data/brain/models/registry.json",
+    "embodiment": "data/brain/embodiment.json"
   },
   "components": {
-    "core": "0.12.0",
+    "core": "0.13.0",
     "interface": "0.10.0",
     "updater": "0.4.0",
     "chat": "1.1.0",
@@ -88,19 +92,21 @@
     "settings": "0.3.0",
     "account": "0.5.0",
     "mobile": "0.2.0",
-    "memory": "0.2.0",
-    "assistant": "0.2.0",
-    "brain": "0.5.0",
+    "memory": "0.3.0",
+    "assistant": "0.3.0",
+    "brain": "0.6.0",
     "identity": "0.1.0",
     "world_model": "0.1.0",
     "reflection": "0.1.0",
     "learning": "0.1.0",
     "skills": "0.1.0",
-    "self_development": "0.1.0",
-    "safety_kernel": "0.1.0",
+    "self_development": "0.2.0",
+    "safety_kernel": "0.2.0",
     "sleep_engine": "0.1.0",
     "cloudru": "0.1.0",
-    "training_data": "0.1.0"
+    "training_data": "0.1.0",
+    "model_registry": "0.1.0",
+    "embodiment": "0.1.0"
   },
   "major_features": {
     "projects_tasks": true,
@@ -123,7 +129,11 @@
     "chat_status_strip": true,
     "chat_thinking_stages": true,
     "chat_confirmation_actions": true,
-    "persistent_conversations": true
+    "persistent_conversations": true,
+    "model_registry": true,
+    "relevance_memory_retrieval": true,
+    "embodiment_registry": true,
+    "strict_self_development_state_machine": true
   },
   "current_brain_behavior": {
     "model_runtime": "internal rule/planner runtime; not yet a trained neural model",
@@ -145,7 +155,15 @@
       "conversation"
     ],
     "direct_file_access": false,
-    "destructive_actions_require_confirmation": true
+    "destructive_actions_require_confirmation": true,
+    "memory_retrieval": "query-aware relevance scoring using lexical match + importance + confidence + recency; true embeddings still pending",
+    "embodiment": {
+      "vision": "enabled via chat-image adapter; direct camera hardware not connected",
+      "hearing": "channel defined, disabled until audio/microphone adapter exists",
+      "speech": "channel defined, disabled until TTS adapter exists",
+      "hands": "enabled through Action Gateway for controlled digital actions",
+      "mobility": "channel defined, disabled until navigation/robotics adapter exists"
+    }
   },
   "chat": {
     "role": "primary user interface",
@@ -276,7 +294,10 @@
       "no real local authentication/session enforcement yet",
       "localhost mutating APIs remain CSRF-sensitive",
       "updater still needs ZIP-slip validation, hashes/signatures, atomic install and rollback API",
-      "JSON storage will eventually need migration to SQLite as data grows"
+      "JSON storage will eventually need migration to SQLite as data grows",
+      "embodiment channels are registry/contracts only; direct camera, microphone, TTS and physical mobility adapters are not implemented yet",
+      "memory relevance retrieval is not yet vector/embedding semantic search",
+      "Model Registry exists, but a trainable neural inference backend is not connected yet"
     ]
   },
   "critical_repo_history": {
@@ -296,83 +317,70 @@
   ],
   "latest_commits": [
     [
-      "39eea8833110232ddfa93b81cb9271d440d075fe",
-      "Document persistent Miyori conversations"
+      "fb9768388769467360fc87eda84995a9b87f21f6",
+      "Release Miyori cognitive foundation v0.13.0"
     ],
     [
-      "fe8d96f1b33758897c72a1d7d4cd959a1ff2773b",
-      "Release persistent Miyori conversations v0.12.0"
+      "9101d40da9792deb9b1fc2b90be35d907977bee7",
+      "Add cognitive foundation regression tests"
     ],
     [
-      "470149f10f4f6e6c3aff8c0c678641af26aaeb03",
-      "Fix conversation rename dialog"
+      "dddd878cf8e5077e06b2a2b0c611aee1bab09725",
+      "Integrate model and embodiment state into Brain architecture"
     ],
     [
-      "7a16f4b28aa21792720f5d896d7f21fc36cca615",
-      "Preserve active chat UI after message send"
+      "e3fd1cf190d76594047725f136db0f4b85d9fc9b",
+      "Fix Brain integration imports and relevance context"
     ],
     [
-      "d492a8b2879b52ba47285916f4add2a324f9a1ff",
-      "Style compact Miyori conversation history"
-    ],
-    [
-      "eaf139915ac2cbfc6c445bd0ee4b6a39a425127a",
-      "Wire persistent conversation history into chat"
-    ],
-    [
-      "640d0ac38cf662dd7a2d92595c6d7582d312819e",
-      "Add compact persistent chat history panel"
-    ],
-    [
-      "cee49ffe056990baa266422fa53c24f4094a622a",
-      "Expose persistent chat session APIs"
-    ],
-    [
-      "f4023c276e58e18436a611d5d07f0b19ad653c9e",
-      "Add persistent Miyori conversation sessions"
+      "da710fa3f624fc8e696bbe6c2808954babd648e8",
+      "Upgrade Miyori cognitive foundation: self_development.py"
     ]
   ],
   "recommended_next_steps": [
     {
       "priority": 1,
-      "name": "Neural Core foundation",
+      "name": "Neural Runtime and semantic retrieval",
       "details": [
-        "model registry and versioned weights",
-        "tokenizer contract",
-        "embeddings and retrieval",
-        "inference pipeline",
-        "evaluation harness",
-        "candidate -> test -> promote/rollback lifecycle"
+        "attach a real neural backend behind BrainModelRuntime",
+        "tokenizer/model artifact contract",
+        "local or provider embeddings",
+        "vector semantic memory index",
+        "context budget and retrieval fusion",
+        "evaluation harness before model promotion"
       ]
     },
     {
       "priority": 2,
-      "name": "Training orchestration",
+      "name": "Eyes, ears and voice adapters",
       "details": [
-        "cost estimate before Cloud.ru GPU run",
-        "budget ceiling and confirmation",
-        "dataset validation/sanitization",
-        "training job status polling",
-        "artifact/model download and registry"
+        "image/screen perception adapter",
+        "optional camera adapter with explicit permission",
+        "microphone/STT adapter with explicit permission",
+        "TTS/voice output adapter",
+        "observation normalization into World Model and Memory"
       ]
     },
     {
       "priority": 3,
-      "name": "Security hardening before network/mobile expansion",
+      "name": "Digital hands and mobility",
       "details": [
-        "CSRF/origin protection",
-        "real profile lock/auth",
-        "tool permissions",
-        "updater ZIP-slip/hashes/signatures/atomic rollback"
+        "expand Action Gateway with scoped file/computer tools",
+        "permission scopes and per-action audit",
+        "sandbox execution",
+        "navigation adapter only after safety boundaries are enforced"
       ]
     },
     {
       "priority": 4,
-      "name": "Storage scaling",
+      "name": "Training orchestration",
       "details": [
-        "migrate conversations/projects/tasks/memory/world model to SQLite when data volume grows",
-        "FTS/retrieval indexes",
-        "embeddings for long-term semantic memory"
+        "dataset validation/sanitization",
+        "cost estimate before Cloud.ru GPU run",
+        "budget ceiling and explicit confirmation",
+        "job status polling",
+        "artifact download into Model Registry",
+        "evaluate -> compare -> approve -> promote -> rollback"
       ]
     }
   ],
