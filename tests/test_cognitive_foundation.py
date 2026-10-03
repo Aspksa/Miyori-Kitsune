@@ -11,8 +11,10 @@ if str(CORE) not in sys.path:
     sys.path.insert(0, str(CORE))
 
 import embodiment
+import embeddings
 import memory
 import model_registry
+import semantic_memory
 import self_development
 
 
@@ -21,6 +23,8 @@ class CognitiveFoundationTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         base = Path(self.temp.name)
         memory.MEMORY_FILE = base / "memory.json"
+        semantic_memory.INDEX_FILE = base / "memory-vectors.json"
+        embeddings.reset_provider_cache()
         model_registry.REGISTRY_FILE = base / "models" / "registry.json"
         embodiment.STATE_FILE = base / "embodiment.json"
         self_development.PROPOSALS_FILE = base / "self-development" / "proposals.json"
