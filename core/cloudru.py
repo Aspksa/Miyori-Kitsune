@@ -19,6 +19,8 @@ JOBS_FILE = ROOT / "data" / "training" / "cloudru-jobs.json"
 
 API_BASE = "https://api.ai.cloud.ru/public/v2"
 SERVICE_AUTH_URL = API_BASE + "/service_auth"
+FOUNDATION_API_BASE = "https://foundation-models.api.cloud.ru/v1"
+DEFAULT_TEACHER_MODEL = "openai/gpt-oss-120b"
 
 
 class CloudRuError(RuntimeError):
@@ -91,11 +93,7 @@ def save_credentials(payload: dict) -> dict:
     workspace_id = str(payload.get("workspace_id", current.get("workspace_id", ""))).strip()
     api_key = str(payload.get("api_key", "")).strip()
     key_secret = str(payload.get("key_secret", "")).strip()
-
-    if not key_id:
-        raise ValueError("Cloud.ru Key ID обязателен.")
-    if not workspace_id:
-        raise ValueError("Cloud.ru Workspace ID обязателен.")
+    foundation_api_key = str(payload.get("foundation_api_key", "")).strip()
 
     data = {
         "key_id": key_id,
@@ -103,14 +101,20 @@ def save_credentials(payload: dict) -> dict:
         "region": str(payload.get("region", current.get("region", "SR006"))).strip() or "SR006",
         "updated_at": int(time.time()),
         "api_base": API_BASE,
+        "foundation_api_base": FOUNDATION_API_BASE,
+        "teacher_model": str(payload.get("teacher_model", current.get("teacher_model", DEFAULT_TEACHER_MODEL))).strip() or DEFAULT_TEACHER_MODEL,
+        "teacher_enabled": bool(payload.get("teacher_enabled", current.get("teacher_enabled", True))),
+        "teacher_auto_review": bool(payload.get("teacher_auto_review", current.get("teacher_auto_review", False))),
     }
     data["api_key"] = _dpapi_encrypt(api_key) if api_key else current.get("api_key", "")
     data["key_secret"] = _dpapi_encrypt(key_secret) if key_secret else current.get("key_secret", "")
+    data["foundation_api_key"] = _dpapi_encrypt(foundation_api_key) if foundation_api_key else current.get("foundation_api_key", "")
 
-    if not data["api_key"]:
-        raise ValueError("Cloud.ru x-api-key обязателен.")
-    if not data["key_secret"]:
-        raise ValueError("Cloud.ru Key Secret обязателен.")
+    training_values = [data.get("key_id"), data.get("key_secret"), data.get("workspace_id"), data.get("api_key")]
+    if any(training_values) and not all(training_values):
+        raise ValueError("Для Cloud.ru GPU Training заполните Key ID, Key Secret, Workspace ID и x-api-key полностью.")
+    if not all(training_values) and not data.get("foundation_api_key"):
+        raise ValueError("Настройте Cloud.ru GPU Training или укажите Foundation Models API Key для Cloud Teacher.")
 
     _write_json(CREDENTIALS_FILE, data)
     return credentials_status()
@@ -118,14 +122,22 @@ def save_credentials(payload: dict) -> dict:
 
 def credentials_status() -> dict:
     data = _read_json(CREDENTIALS_FILE, {})
-    configured = all(data.get(k) for k in ("key_id", "key_secret", "workspace_id", "api_key"))
+    training_configured = all(data.get(k) for k in ("key_id", "key_secret", "workspace_id", "api_key"))
+    foundation_configured = bool(data.get("foundation_api_key"))
     return {
-        "configured": bool(configured),
+        "configured": bool(training_configured),
+        "training_configured": bool(training_configured),
+        "foundation_configured": foundation_configured,
         "key_id": str(data.get("key_id", "")),
         "workspace_id": str(data.get("workspace_id", "")),
         "region": str(data.get("region", "SR006")),
         "secret_saved": bool(data.get("key_secret")),
         "api_key_saved": bool(data.get("api_key")),
+        "foundation_api_key_saved": foundation_configured,
+        "teacher_model": str(data.get("teacher_model", DEFAULT_TEACHER_MODEL) or DEFAULT_TEACHER_MODEL),
+        "teacher_enabled": bool(data.get("teacher_enabled", True)),
+        "teacher_auto_review": bool(data.get("teacher_auto_review", False)),
+        "foundation_api_base": FOUNDATION_API_BASE,
         "storage": "windows-dpapi" if platform.system() == "Windows" else "local-file-0600",
         "updated_at": int(data.get("updated_at", 0) or 0),
     }
@@ -134,7 +146,7 @@ def credentials_status() -> dict:
 def _credentials() -> dict:
     data = _read_json(CREDENTIALS_FILE, {})
     if not all(data.get(k) for k in ("key_id", "key_secret", "workspace_id", "api_key")):
-        raise CloudRuError("Cloud.ru ещё не настроен в Личном кабинете.")
+        raise CloudRuError("Cloud.ru GPU Training ещё не настроен в Личном кабинете.")
     return {
         **data,
         "key_secret": _dpapi_decrypt(data["key_secret"]),
@@ -142,22 +154,72 @@ def _credentials() -> dict:
     }
 
 
-def _request(url: str, method: str = "GET", headers: dict | None = None, payload: dict | None = None, timeout: int = 30):
-    body = None
-    request_headers = {"Accept": "application/json", **(headers or {})}
-    if payload is not None:
-        body = json.dumps(payload).encode("utf-8")
-        request_headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(url, data=body, headers=request_headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            raw = response.read().decode("utf-8")
-            return json.loads(raw) if raw else {}
-    except urllib.error.HTTPError as exc:
-        message = exc.read().decode("utf-8", errors="replace")[:1000]
-        raise CloudRuError(f"Cloud.ru HTTP {exc.code}: {message}") from exc
-    except urllib.error.URLError as exc:
-        raise CloudRuError(f"Cloud.ru недоступен: {exc.reason}") from exc
+def _foundation_credentials() -> dict:
+    data = _read_json(CREDENTIALS_FILE, {})
+    if not data.get("foundation_api_key"):
+        raise CloudRuError("Cloud Teacher не настроен. Добавьте Foundation Models API Key в Личном кабинете.")
+    return {
+        "api_key": _dpapi_decrypt(data["foundation_api_key"]),
+        "model": str(data.get("teacher_model", DEFAULT_TEACHER_MODEL) or DEFAULT_TEACHER_MODEL),
+        "enabled": bool(data.get("teacher_enabled", True)),
+        "auto_review": bool(data.get("teacher_auto_review", False)),
+    }
+
+
+def foundation_status() -> dict:
+    status = credentials_status()
+    return {
+        "configured": status["foundation_configured"],
+        "enabled": status["teacher_enabled"],
+        "auto_review": status["teacher_auto_review"],
+        "model": status["teacher_model"],
+        "api_key_saved": status["foundation_api_key_saved"],
+        "api_base": FOUNDATION_API_BASE,
+    }
+
+
+def _foundation_headers() -> dict:
+    creds = _foundation_credentials()
+    return {"Authorization": "Bearer " + creds["api_key"]}
+
+
+def foundation_models():
+    return _request(FOUNDATION_API_BASE + "/models", headers=_foundation_headers())
+
+
+def foundation_chat(messages: list[dict], model: str | None = None, max_tokens: int = 800, temperature: float = 0.2) -> dict:
+    creds = _foundation_credentials()
+    if not creds["enabled"]:
+        raise CloudRuError("Cloud Teacher отключён в Личном кабинете.")
+    selected_model = str(model or creds["model"]).strip() or DEFAULT_TEACHER_MODEL
+    payload = {
+        "model": selected_model,
+        "messages": messages,
+        "max_tokens": max(64, min(int(max_tokens), 4000)),
+        "temperature": max(0.0, min(float(temperature), 2.0)),
+    }
+    return _request(
+        FOUNDATION_API_BASE + "/chat/completions",
+        method="POST",
+        headers=_foundation_headers(),
+        payload=payload,
+        timeout=90,
+    )
+
+
+def test_foundation_connection() -> dict:
+    started = time.time()
+    data = foundation_models()
+    rows = data.get("data", []) if isinstance(data, dict) else []
+    configured = foundation_status()
+    model_ids = {str(item.get("id")) for item in rows if isinstance(item, dict)}
+    return {
+        "connected": True,
+        "latency_ms": int((time.time() - started) * 1000),
+        "models_found": len(rows),
+        "selected_model_available": configured["model"] in model_ids if model_ids else None,
+        "status": configured,
+    }
 
 
 def access_token() -> str:
