@@ -22,9 +22,12 @@
     "ui_preference": "не раздувать сайт техническими блоками; чат является главным интерфейсом управления и статусов",
     "language": "писать пользователю по-русски",
     "design": "профессионально, удобно, компактно, красиво, адаптивно",
-    "cloudru": "Cloud.ru используется как вычислительная среда обучения собственной Miyori; ключи вводятся в Личном кабинете",
+    "cloudru": "Cloud.ru — учитель Miyori и облачная вычислительная среда. Готовая сильная модель Cloud.ru не должна подменять личность Miyori: она используется для критики, разметки, объяснений, проверки, генерации качественных тренировочных примеров, оценки новых версий и GPU-обучения собственного Miyori Student. Ключи вводятся только в Личном кабинете.",
     "autonomy": "развитие через proposal -> sandbox/test -> approval -> apply -> rollback; без бесконтрольного self_modify()",
-    "paid_training": "не запускать платные GPU job автоматически; запуск только отдельным контролируемым действием"
+    "paid_training": "не запускать платные GPU job автоматически; запуск только отдельным контролируемым действием",
+    "ai_identity": "Miyori Kitsune должна оставаться собственной личной AI пользователя: собственная личность, память, модель мира, навыки, история развития и собственные версии модели/весов.",
+    "teacher_student": "Целевая архитектура: Miyori Student — основной развиваемый мозг Miyori; Cloud Teacher — внешний сильный учитель за кулисами. Teacher не должен постоянно отвечать пользователю вместо Miyori.",
+    "model_ownership": "Собственные версии Miyori Student могут храниться и исполняться в облаке; локальная модель не является обязательной."
   },
   "architecture": {
     "core": {
@@ -181,7 +184,8 @@
       "mobility": "channel defined, disabled until navigation/robotics adapter exists"
     },
     "neural_safety": "free conversation may use neural runtime; real actions remain planned/executed through deterministic planner and Action Gateway",
-    "model_promotion": "evaluation never auto-promotes; active model promotion still requires explicit approval"
+    "model_promotion": "evaluation never auto-promotes; active model promotion still requires explicit approval",
+    "teacher_student_target": "Следующий архитектурный приоритет — реализовать Teacher–Student orchestration: Cloud Teacher участвует только в обучении/критике/оценке, а не подменяет Miyori Student в обычном диалоге."
   },
   "chat": {
     "role": "primary user interface",
@@ -361,46 +365,101 @@
   "recommended_next_steps": [
     {
       "priority": 1,
-      "name": "Acquire first Miyori base model",
+      "name": "Teacher–Student orchestration",
       "details": [
-        "choose a compact multilingual/russian-capable open-weight GGUF base model",
-        "place artifact under data/models locally, never commit weights to Git",
-        "register as candidate with runtime llama_cpp",
-        "run evaluation before any activation",
-        "keep internal planner as fallback"
+        "добавить отдельные роли Miyori Student и Cloud Teacher",
+        "добавить Teacher Gateway, отделённый от основного Brain runtime",
+        "сохранять teacher critique/labels как отдельные артефакты обучения",
+        "не направлять обычный пользовательский чат напрямую в Teacher по умолчанию"
       ]
     },
     {
       "priority": 2,
-      "name": "Real neural semantic memory",
+      "name": "Cloud-hosted Miyori Student",
       "details": [
-        "choose a local multilingual sentence-transformers embedding model",
-        "configure MIYORI_EMBEDDING_MODEL to a local path",
-        "rebuild vector index",
-        "measure retrieval quality against current deterministic fallback"
+        "выбрать базовую open-weight модель для Miyori Student",
+        "хранить и запускать её в облаке, локальный вес не обязателен",
+        "зарегистрировать candidate в Model Registry",
+        "подключить inference endpoint через отдельный Student Runtime"
       ]
     },
     {
       "priority": 3,
-      "name": "Training lifecycle",
+      "name": "Teacher-assisted learning",
       "details": [
-        "dataset validation and train/validation split",
-        "Cloud.ru cost estimate and budget ceiling",
-        "explicit confirmation before paid GPU training",
-        "download artifacts to Model Registry",
-        "evaluate -> compare -> approve -> promote -> rollback"
+        "критика ответов и reasoning outcomes",
+        "очистка и разметка памяти/рефлексий",
+        "генерация preference pairs и supervised examples",
+        "dataset validation и train/validation split",
+        "не обучаться автоматически на неподтверждённых ошибочных данных"
       ]
     },
     {
       "priority": 4,
-      "name": "Eyes, ears and digital hands",
+      "name": "Cloud training lifecycle",
       "details": [
-        "screen/image perception adapter",
-        "camera permission adapter",
-        "microphone/STT and TTS adapters",
-        "sandboxed file/computer tools behind Action Gateway"
+        "estimate cost before paid GPU run",
+        "budget ceiling",
+        "explicit confirmation before training",
+        "train candidate weights",
+        "evaluate against previous active model",
+        "approve -> promote or rollback"
+      ]
+    },
+    {
+      "priority": 5,
+      "name": "Embodiment after brain foundation",
+      "details": [
+        "eyes: image/screen/camera adapters",
+        "ears: microphone/STT",
+        "voice: TTS",
+        "hands: sandboxed computer/file tools",
+        "mobility only behind explicit adapters and permissions"
       ]
     }
   ],
-  "handoff_instruction": "In the next chat, first read docs/PROJECT_STATE.json and docs/NEXT_CHAT_HANDOFF.md from branch main, then fetch version.json and latest commits before modifying anything."
+  "handoff_instruction": "In the next chat, first read docs/PROJECT_STATE.json and docs/NEXT_CHAT_HANDOFF.md from branch main, then fetch version.json and latest commits before modifying anything.",
+  "teacher_student_architecture": {
+    "principle": "Cloud.ru teaches Miyori; Cloud.ru is not Miyori.",
+    "miyori_student": {
+      "role": "основной персональный мозг Miyori",
+      "owns": [
+        "личность и поведенческая преемственность",
+        "долговременную память",
+        "модель мира",
+        "навыки",
+        "историю решений и рефлексий",
+        "версии модели/весов"
+      ],
+      "deployment": "может храниться и работать в облаке; локальный запуск не обязателен"
+    },
+    "cloud_teacher": {
+      "role": "внешний сильный учитель и вычислительная инфраструктура",
+      "allowed_uses": [
+        "критика и проверка ответов Miyori",
+        "объяснения и teaching signals",
+        "разметка и очистка опыта",
+        "генерация тренировочных примеров",
+        "оценка candidate-моделей",
+        "подготовка distillation/fine-tuning датасетов",
+        "GPU training"
+      ],
+      "forbidden_product_role": "не должен становиться постоянным основным ответчиком вместо Miyori Student"
+    },
+    "learning_loop": [
+      "Miyori получает запрос и контекст",
+      "Miyori Student формирует ответ/решение",
+      "результат и опыт сохраняются",
+      "Cloud Teacher при необходимости критикует, исправляет и размечает опыт",
+      "подтверждённые данные попадают в training dataset",
+      "обучается новая candidate-версия Miyori Student",
+      "candidate проходит evaluation и сравнение",
+      "активация только после явного подтверждения",
+      "при деградации доступен rollback"
+    ],
+    "target_flow": {
+      "online": "User -> Miyori context/memory/world model -> Miyori Student -> response",
+      "learning": "Miyori experience -> Cloud Teacher -> critique/labels -> dataset -> GPU training -> new Miyori Student candidate -> evaluation -> approval -> promote/rollback"
+    }
+  }
 }
