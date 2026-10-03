@@ -94,10 +94,11 @@
 
             <div class="brain-status-strip" id="brainStatusStrip">
               <div class="brain-status-item"><span>МОЗГ</span><b id="brainStatusVersion">Загрузка…</b></div>
+              <div class="brain-status-item"><span>ПАМЯТЬ</span><b id="brainMemoryStatus">—</b></div>
               <div class="brain-status-item"><span>МИР</span><b id="brainWorldStatus">—</b></div>
               <div class="brain-status-item"><span>НАВЫКИ</span><b id="brainSkillsStatus">—</b></div>
+              <div class="brain-status-item"><span>УЧИТЕЛЬ</span><b id="brainTeacherStatus">—</b></div>
               <div class="brain-status-item"><span>ОБУЧЕНИЕ</span><b id="brainLearningStatus">—</b></div>
-              <div class="brain-status-item"><span>CLOUD.RU</span><b id="brainCloudStatus">—</b></div>
             </div>
 
             <div class="context-strip">
@@ -200,15 +201,23 @@
           </article>
 
           <article class="account-card cloudru-card">
-            <div class="card-title"><div><small>MIYORI TRAINING / CLOUD.RU</small><b>Вычислительная среда обучения</b></div><span class="account-status" id="cloudruConnectionState">Не настроено</span></div>
-            <p class="cloudru-note">Cloud.ru используется только как вычислительная среда для обучения Miyori. Секреты хранятся локально и не отправляются в GitHub.</p>
+            <div class="card-title"><div><small>MIYORI / CLOUD.RU</small><b>Учитель и вычислительная среда</b></div><span class="account-status" id="cloudruConnectionState">Не настроено</span></div>
+            <p class="cloudru-note">Cloud.ru не является Miyori. Foundation Models работает как Cloud Teacher, а GPU Training используется для обучения новых версий Miyori Student. Секреты хранятся локально и не попадают в GitHub.</p>
             <form id="cloudruForm" class="profile-form">
+              <div class="cloud-section-title"><span>TEACHER / FOUNDATION MODELS</span><b>Cloud Teacher</b><small>Критика, разметка и обучающие сигналы. Не заменяет ответы Miyori.</small></div>
+              <label class="cloud-wide">Foundation Models API Key<input id="cloudruFoundationApiKey" type="password" autocomplete="new-password" placeholder="Введите API Key или оставьте пустым, если уже сохранён"></label>
+              <label>Teacher model<input id="cloudruTeacherModel" autocomplete="off" value="openai/gpt-oss-120b" placeholder="openai/gpt-oss-120b"></label>
+              <div class="teacher-toggle-stack">
+                <div class="toggle-row"><span><b>Cloud Teacher включён</b><small>Разрешает ручную проверку и обучение</small></span><input type="checkbox" id="cloudruTeacherEnabled" checked></div>
+                <div class="toggle-row"><span><b>Автопроверка ответов</b><small>Платный запрос Teacher после каждого ответа Miyori</small></span><input type="checkbox" id="cloudruTeacherAutoReview"></div>
+              </div>
+              <div class="cloud-section-title"><span>GPU TRAINING</span><b>Обучение Miyori Student</b><small>Эти поля нужны для training jobs; можно оставить пустыми, пока обучение не запускаем.</small></div>
               <label>Key ID<input id="cloudruKeyId" autocomplete="off" placeholder="Key ID"></label>
               <label>Key Secret<input id="cloudruKeySecret" type="password" autocomplete="new-password" placeholder="Введите или оставьте пустым, если уже сохранён"></label>
               <label>Workspace ID<input id="cloudruWorkspaceId" autocomplete="off" placeholder="x-workspace-id"></label>
               <label>x-api-key<input id="cloudruApiKey" type="password" autocomplete="new-password" placeholder="Введите или оставьте пустым, если уже сохранён"></label>
               <label>Регион<input id="cloudruRegion" autocomplete="off" value="SR006" placeholder="SR006"></label>
-              <div class="account-actions"><button type="submit" class="primary">Сохранить Cloud.ru</button><button type="button" class="secondary" id="testCloudruButton">Проверить подключение</button><span id="cloudruSaveStatus"></span></div>
+              <div class="account-actions"><button type="submit" class="primary">Сохранить Cloud.ru</button><button type="button" class="secondary" id="testCloudTeacherButton">Проверить Teacher</button><button type="button" class="secondary" id="testCloudruButton">Проверить GPU</button><span id="cloudruSaveStatus"></span></div>
             </form>
           </article>
 
