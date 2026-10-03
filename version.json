@@ -1,16 +1,16 @@
 {
-  "version": "0.16.0",
+  "version": "0.17.0",
   "channel": "stable",
   "repository": "Aspksa/Miyori-Kitsune",
   "components": {
     "core": "0.16.0",
-    "interface": "0.12.0",
+    "interface": "0.13.0",
     "updater": "0.4.0",
-    "chat": "1.3.0",
+    "chat": "1.4.0",
     "workspace": "0.4.0",
     "home": "0.3.0",
     "settings": "0.3.0",
-    "account": "0.7.0",
+    "account": "0.8.0",
     "mobile": "0.2.0",
     "memory": "0.4.0",
     "assistant": "0.3.0",
@@ -147,17 +147,16 @@
     "notes": "Отдельный пакет мобильного клиента будет публиковаться через GitHub Releases."
   },
   "changes": [
-    "Добавлен Cloud-hosted Miyori Student runtime на базе Cloud.ru Evolution ML Inference; Cloud Teacher и Miyori Student остаются разными ролями.",
-    "Miyori Student использует OpenAI-compatible ML Inference endpoint и собственный API Token, которые хранятся локально и не возвращаются через status API.",
-    "Student получает последние сообщения текущего диалога и релевантную память Miyori, поэтому облачный мозг работает с контекстом, а не как stateless-модель.",
-    "При недоступности активного Cloud Student Brain автоматически переходит на internal planner fallback и показывает это в pipeline trace.",
-    "Добавлен lifecycle Student: save/register candidate -> connection test -> evaluation -> explicit promote -> rollback.",
-    "Evaluation усилен: проверяются идентичность Miyori, работа с контекстом, честность о невыполненных действиях и action grounding; для активации нужен score >= 0.75.",
-    "Нельзя тихо заменить endpoint/model активной версии Student: изменение требует нового version и повторной оценки.",
-    "Cloud Student configs сохраняются по версиям, поэтому active vN продолжает работать, пока candidate vN+1 тестируется на другом endpoint.",
-    "Добавлен явный rollback активного мозга на предыдущую модель с подтверждением пользователя.",
-    "Личный кабинет получил отдельный Student / ML Inference блок: endpoint, model, version, token, test, evaluate, activate и rollback.",
-    "Чат v1.3 показывает MIYORI · STUDENT, когда обычный диалог действительно обслуживает активный Student runtime.",
-    "Добавлены regression tests для Student lifecycle, endpoint restriction, silent replacement protection и rollback approval."
+    "Главный экран чата радикально упрощён: теперь видны только Miyori, память, диалоги, сообщения и поле ввода.",
+    "Технические индикаторы Brain/World/Skills/Teacher/Training и runtime trace скрыты из обычного интерфейса, но остаются внутри системы.",
+    "Убраны версии, planner/runtime/candidate/endpoint/LoRA и другие инженерные термины с основного пользовательского экрана.",
+    "Статус диалога больше не показывает счётчик сообщений; вместо этого используется простое название диалога.",
+    "Навигация упрощена до основных пользовательских разделов; системные и редкие разделы скрыты из боковой панели.",
+    "Личный кабинет очищен от лишних карточек и сфокусирован на подключении Cloud.ru.",
+    "Cloud.ru представлен как простой путь: 1) подключить учителя, 2) подключить мозг Miyori, 3) обучение позже.",
+    "Технические Cloud.ru поля перенесены в сворачиваемый блок «Дополнительные настройки».",
+    "Подключение Teacher и Student автоматически сохраняет введённые настройки перед проверкой.",
+    "Технические ошибки Cloud.ru переводятся в понятные пользовательские сообщения.",
+    "Student lifecycle стал пошаговым: кнопки проверки качества, активации и отката показываются только когда они реально нужны."
   ]
 }
