@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from account import create_pairing, get_profile, list_devices, pairing_status, revoke_device, save_profile
-from cloudru import CloudRuError, credentials_status as cloudru_status, job_history as cloudru_job_history, list_training_configs as cloudru_training_configs, save_credentials as save_cloudru_credentials, submit_training_job as cloudru_submit_training_job, test_connection as cloudru_test_connection
+from cloudru import CloudRuError, credentials_status as cloudru_status, job_history as cloudru_job_history, list_training_configs as cloudru_training_configs, save_credentials as save_cloudru_credentials, submit_training_job as cloudru_submit_training_job, test_connection as cloudru_test_connection, test_foundation_connection as cloudru_test_foundation_connection
 from training_data import build_dataset as build_training_dataset, list_datasets as list_training_datasets
 from assistant_gateway import build_context, capability_manifest, execute_action, state_snapshot
 from brain import create_session as brain_create_session, delete_session as brain_delete_session, get_session as brain_get_session, list_sessions as brain_list_sessions, rename_session as brain_rename_session, status as brain_status, think as brain_think
@@ -24,6 +24,7 @@ from neural_runtime import runtime_status as neural_runtime_status
 from semantic_memory import status as semantic_memory_status
 from brain_scheduler import start as start_brain_scheduler, stop as stop_brain_scheduler
 from self_development import list_proposals, propose as propose_development, transition as transition_development
+from teacher_gateway import list_feedback as teacher_feedback_list, mark_feedback as teacher_mark_feedback, review as teacher_review, status as teacher_status
 from entities import (
     audit_log,
     create_project,
@@ -203,6 +204,14 @@ class MiyoriHandler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/brain/memory/semantic":
             self._json({"ok": True, **semantic_memory_status()})
+            return
+
+        if parsed.path == "/api/brain/teacher":
+            self._json({"ok": True, **teacher_status()})
+            return
+
+        if parsed.path == "/api/brain/teacher/feedback":
+            self._json({"ok": True, "items": teacher_feedback_list()})
             return
 
         if parsed.path == "/api/chat/sessions":
@@ -433,6 +442,35 @@ class MiyoriHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/cloudru/test":
                 self._json({"ok": True, **cloudru_test_connection()})
+                return
+
+            if parsed.path == "/api/cloudru/foundation/test":
+                self._json({"ok": True, **cloudru_test_foundation_connection()})
+                return
+
+            if parsed.path == "/api/brain/teacher/review":
+                context = build_context(
+                    project_id=payload.get("project_id"),
+                    task_id=payload.get("task_id"),
+                    query=str(payload.get("message", "")),
+                )
+                item = teacher_review(
+                    str(payload.get("message", "")),
+                    str(payload.get("student_reply", "")),
+                    context=context,
+                    session_id=payload.get("session_id"),
+                    source="manual",
+                )
+                self._json({"ok": True, "feedback": item})
+                return
+
+            if parsed.path == "/api/brain/teacher/feedback/mark":
+                item = teacher_mark_feedback(
+                    str(payload.get("id", "")),
+                    accepted_for_training=bool(payload.get("accepted_for_training", False)),
+                    reviewed_by_user=True,
+                )
+                self._json({"ok": True, "feedback": item})
                 return
 
             if parsed.path == "/api/training/dataset/build":
