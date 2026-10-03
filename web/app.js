@@ -176,6 +176,20 @@ function renderDevices(devices=[]){
   }));
 }
 
+function renderCloudru(cloudru={}){
+  const configured=!!cloudru.configured;
+  document.getElementById("cloudruKeyId").value=cloudru.key_id||"";
+  document.getElementById("cloudruWorkspaceId").value=cloudru.workspace_id||"";
+  document.getElementById("cloudruRegion").value=cloudru.region||"SR006";
+  document.getElementById("cloudruKeySecret").value="";
+  document.getElementById("cloudruApiKey").value="";
+  document.getElementById("cloudruKeySecret").placeholder=cloudru.secret_saved?"Секрет сохранён — оставьте пустым, чтобы не менять":"Введите Key Secret";
+  document.getElementById("cloudruApiKey").placeholder=cloudru.api_key_saved?"x-api-key сохранён — оставьте пустым, чтобы не менять":"Введите x-api-key";
+  const state=document.getElementById("cloudruConnectionState");
+  state.textContent=configured?"Настроено":"Не настроено";
+  state.classList.toggle("cloudru-ready",configured);
+}
+
 function renderAccount(data){
   const profile=data.profile||{};
   const name=profile.display_name||"Aspksa";
@@ -190,6 +204,7 @@ function renderAccount(data){
   document.querySelectorAll(".profile-avatar,.top-profile").forEach(el=>el.textContent=profileInitials(name));
   document.getElementById("profileId").textContent=String(profile.profile_id||"—").slice(0,8);
   document.getElementById("syncState").textContent=profile.sync_enabled?"Включена":"Выключена";
+  if(data.cloudru)renderCloudru(data.cloudru);
   renderDevices(data.devices||[]);
   const pairing=data.pairing||{};
   if(pairing.active){
@@ -218,6 +233,36 @@ document.getElementById("profileForm").addEventListener("submit",async event=>{
     renderAccount({profile:data.profile,devices:(await api("/api/account")).devices});
     status.textContent="Сохранено";
   }catch(error){status.textContent=error.message;}
+});
+
+document.getElementById("cloudruForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const status=document.getElementById("cloudruSaveStatus");
+  status.textContent="Сохранение…";
+  const payload={
+    key_id:document.getElementById("cloudruKeyId").value.trim(),
+    key_secret:document.getElementById("cloudruKeySecret").value,
+    workspace_id:document.getElementById("cloudruWorkspaceId").value.trim(),
+    api_key:document.getElementById("cloudruApiKey").value,
+    region:document.getElementById("cloudruRegion").value.trim()||"SR006"
+  };
+  try{
+    const data=await api("/api/cloudru/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    renderCloudru(data.cloudru||{});
+    status.textContent="Сохранено локально";
+  }catch(error){status.textContent=error.message;}
+});
+
+document.getElementById("testCloudruButton").addEventListener("click",async()=>{
+  const button=document.getElementById("testCloudruButton");
+  const status=document.getElementById("cloudruSaveStatus");
+  button.disabled=true;status.textContent="Проверка Cloud.ru…";
+  try{
+    const data=await api("/api/cloudru/test",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+    renderCloudru(data.status||{configured:true});
+    status.textContent="Подключено · "+data.latency_ms+" мс";
+  }catch(error){status.textContent=error.message;}
+  finally{button.disabled=false;}
 });
 
 document.getElementById("refreshDevicesButton").addEventListener("click",loadAccount);
