@@ -24,11 +24,114 @@ prompt.addEventListener("input",()=>{prompt.style.height="auto";prompt.style.hei
 prompt.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();document.getElementById("composer").requestSubmit();}});
 let chatBusy=false;
 let pendingBrainRequest=null;
-const chatSessionId="web-"+Date.now().toString(36);
+let chatSessionId=null;
+let chatSessions=[];
 let thinkingTimer=null;
 
 function chatEscape(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]));}
 function chatTime(){return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
+
+function sessionTime(ts){
+  if(!ts)return "";
+  const date=new Date(ts*1000),now=new Date();
+  return date.toDateString()===now.toDateString()?date.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):date.toLocaleDateString();
+}
+
+function renderChatHistory(){
+  const root=document.getElementById("chatHistoryList");
+  if(!root)return;
+  if(!chatSessions.length){root.innerHTML='<p class="empty-state">Диалогов пока нет.</p>';return;}
+  root.innerHTML=chatSessions.map(session=>{
+    const active=session.id===chatSessionId?" active":"";
+    return '<div class="chat-history-row'+active+'" data-chat-session="'+chatEscape(session.id)+'"><button class="chat-history-open" type="button"><b>'+chatEscape(session.title||"Новый диалог")+'</b><small>'+chatEscape(session.preview||"Пустой диалог")+'</small></button><div class="chat-history-meta"><span>'+chatEscape(sessionTime(session.updated_at))+'</span><button type="button" data-chat-menu title="Действия">•••</button></div></div>';
+  }).join("");
+  root.querySelectorAll("[data-chat-session]").forEach(row=>{
+    row.querySelector(".chat-history-open").addEventListener("click",()=>openChatSession(row.dataset.chatSession));
+    row.querySelector("[data-chat-menu]").addEventListener("click",event=>{
+      event.stopPropagation();
+      const session=chatSessions.find(x=>x.id===row.dataset.chatSession);
+      if(!session)return;
+      const action=prompt("Введите новое название. Чтобы удалить диалог, введите: удалить",session.title||"");
+      if(action===null)return;
+      if(action.trim().toLowerCase()==="удалить"){deleteChatSession(session.id);return;}
+      if(action.trim())renameChatSession(session.id,action.trim());
+    });
+  });
+}
+
+function renderSessionMessages(session){
+  const feed=document.getElementById("chatFeed");
+  feed.innerHTML="";
+  const messages=session?.messages||[];
+  if(!messages.length){
+    appendChatMessage("assistant","Я готова. Это новый диалог. Можешь продолжать с любого вопроса или задачи.",{badge:"СИСТЕМА",system:true});
+    return;
+  }
+  for(const message of messages){
+    if(message.role!=="user"&&message.role!=="assistant")continue;
+    appendChatMessage(message.role==="user"?"user":"assistant",message.content||"",{badge:message.role==="assistant"?(message.meta?.intent||"история").toUpperCase():""});
+  }
+}
+
+async function loadChatSessions(openLatest=true){
+  try{
+    const data=await api("/api/chat/sessions");
+    chatSessions=data.items||[];
+    renderChatHistory();
+    if(openLatest){
+      const saved=localStorage.getItem("miyoriActiveChat");
+      const target=chatSessions.find(x=>x.id===saved)||chatSessions[0];
+      if(target)await openChatSession(target.id,false);
+      else await createChatSession();
+    }
+  }catch(error){
+    appendChatMessage("assistant","Не удалось загрузить историю диалогов: "+error.message,{badge:"ОШИБКА",system:true});
+  }
+}
+
+async function openChatSession(id,closePanel=true){
+  if(chatBusy)return;
+  try{
+    const data=await api("/api/chat/session?id="+encodeURIComponent(id));
+    chatSessionId=data.session.id;
+    localStorage.setItem("miyoriActiveChat",chatSessionId);
+    document.getElementById("chatSessionLabel").textContent=(data.session.title||"Диалог")+" · "+(data.session.messages?.length||0)+" сообщений";
+    renderSessionMessages(data.session);
+    chatSessions=chatSessions.map(x=>x.id===chatSessionId?{...x,title:data.session.title,updated_at:data.session.updated_at,message_count:data.session.messages?.length||0}:x);
+    renderChatHistory();
+    if(closePanel)document.getElementById("chatHistoryPanel").hidden=true;
+  }catch(error){
+    appendChatMessage("assistant","Не удалось открыть диалог: "+error.message,{badge:"ОШИБКА",system:true});
+  }
+}
+
+async function createChatSession(){
+  try{
+    const data=await api("/api/chat/session/create",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+    chatSessionId=data.session.id;
+    localStorage.setItem("miyoriActiveChat",chatSessionId);
+    await loadChatSessions(false);
+    await openChatSession(chatSessionId);
+    prompt.focus();
+  }catch(error){appendChatMessage("assistant",error.message,{badge:"ОШИБКА",system:true});}
+}
+
+async function renameChatSession(id,title){
+  try{
+    await api("/api/chat/session/rename",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,title})});
+    await loadChatSessions(false);
+    if(id===chatSessionId)await openChatSession(id,false);
+  }catch(error){appendChatMessage("assistant",error.message,{badge:"ОШИБКА",system:true});}
+}
+
+async function deleteChatSession(id){
+  if(!confirm("Удалить этот диалог? Это действие нельзя отменить."))return;
+  try{
+    await api("/api/chat/session/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
+    if(id===chatSessionId){chatSessionId=null;localStorage.removeItem("miyoriActiveChat");}
+    await loadChatSessions(true);
+  }catch(error){appendChatMessage("assistant",error.message,{badge:"ОШИБКА",system:true});}
+}
 
 function appendChatMessage(role,text,options={}){
   const feed=document.getElementById("chatFeed");
@@ -135,7 +238,7 @@ async function sendBrainMessage(value,confirmed=false,echoUser=true){
   try{
     const response=await fetch("/api/brain/think",{method:"POST",cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       message:value,
-      session_id:chatSessionId,
+      session_id:chatSessionId||"default",
       project_id:activeProjectId||null,
       confirmed
     })});
@@ -148,6 +251,8 @@ async function sendBrainMessage(value,confirmed=false,echoUser=true){
     appendChatMessage("assistant",data.reply||"Готово.",{badge:(data.intent||"ответ").toUpperCase()});
     pendingBrainRequest=null;
     await Promise.all([loadBrainOverview(false),loadWorkspace(activeProjectId),loadMemory(),refreshActiveContext()]);
+    await loadChatSessions(false);
+    if(chatSessionId)await openChatSession(chatSessionId,false);
   }catch(error){
     appendChatMessage("assistant",error.message,{badge:"ОШИБКА",system:true});
   }finally{
@@ -548,6 +653,12 @@ document.getElementById("newTaskButton").addEventListener("click",()=>{refreshPr
 document.getElementById("projectAddTaskButton").addEventListener("click",()=>{refreshProjectSelectors();document.getElementById("taskProject").value=activeProjectId||"";openEntityModal("taskModal");});
 document.getElementById("refreshContextButton").addEventListener("click",refreshActiveContext);
 document.getElementById("refreshBrainStatusButton").addEventListener("click",()=>loadBrainOverview(false));
+document.getElementById("chatHistoryButton").addEventListener("click",()=>{
+  const panel=document.getElementById("chatHistoryPanel");
+  panel.hidden=!panel.hidden;
+});
+document.getElementById("newChatButton").addEventListener("click",createChatSession);
+
 
 document.getElementById("projectForm").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -564,3 +675,4 @@ document.getElementById("taskForm").addEventListener("submit",async e=>{
 loadWorkspace();
 refreshActiveContext();
 loadBrainOverview(false);
+loadChatSessions(true);
