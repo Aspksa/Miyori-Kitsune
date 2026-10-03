@@ -20,7 +20,16 @@ def register_current() -> dict:
     if not cloud.get("configured"):
         raise ValueError("Miyori Student ещё не настроен в Cloud.ru ML Inference.")
     model_id = model_id_for(cloud.get("version", "0.1.0"))
-    return register_model(
+    existing = next((item for item in list_models() if item.get("id") == model_id), None)
+    if existing:
+        metadata = existing.get("metadata", {}) if isinstance(existing.get("metadata"), dict) else {}
+        changed = (
+            str(metadata.get("endpoint") or "") != str(cloud.get("endpoint") or "")
+            or str(metadata.get("model_name") or "") != str(cloud.get("model") or "")
+        )
+        if changed and existing.get("stage") == "active":
+            raise ValueError("Нельзя менять endpoint или model активной версии Student. Увеличьте версию Student и сохраните её как новый candidate.")
+    item = register_model(
         model_id=model_id,
         name="miyori-cloud-student",
         version=str(cloud.get("version", "0.1.0")),
@@ -36,6 +45,19 @@ def register_current() -> dict:
             "teacher": False,
         },
     )
+    if existing:
+        old_metadata = existing.get("metadata", {}) if isinstance(existing.get("metadata"), dict) else {}
+        changed = (
+            str(old_metadata.get("endpoint") or "") != str(cloud.get("endpoint") or "")
+            or str(old_metadata.get("model_name") or "") != str(cloud.get("model") or "")
+        )
+        if changed:
+            item["metrics"] = {}
+            from model_registry import update_metrics
+            item = update_metrics(item["id"], {})
+            if item.get("stage") == "approved":
+                item = transition(item["id"], "testing")
+    return item
 
 
 def prepare_for_evaluation() -> dict:
