@@ -1,16 +1,39 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "channel": "stable",
   "repository": "Aspksa/Miyori-Kitsune",
   "components": {
-    "core": "0.3.0",
-    "interface": "0.3.0",
-    "updater": "0.3.0",
-    "chat": "0.2.0",
-    "workspace": "0.2.0",
-    "home": "0.2.0",
-    "settings": "0.2.0",
-    "account": "0.2.0",
-    "mobile": "0.1.0"
-  }
+    "core": "0.4.0",
+    "interface": "0.4.0",
+    "updater": "0.4.0",
+    "chat": "0.3.0",
+    "workspace": "0.3.0",
+    "home": "0.3.0",
+    "settings": "0.3.0",
+    "account": "0.3.0",
+    "mobile": "0.2.0"
+  },
+  "dependencies": {
+    "chat": {"core": "0.4.0"},
+    "workspace": {"core": "0.4.0"},
+    "home": {"core": "0.4.0"},
+    "settings": {"core": "0.4.0"},
+    "account": {"core": "0.4.0"},
+    "mobile": {"core": "0.4.0"}
+  },
+  "mobile_client": {
+    "version": "0.2.0",
+    "platform": "android",
+    "min_core": "0.4.0",
+    "download_url": "",
+    "notes": "Отдельный пакет мобильного клиента будет публиковаться через GitHub Releases."
+  },
+  "changes": [
+    "Добавлен размер пакета и живой прогресс загрузки.",
+    "Добавлены Git commit / build ID.",
+    "Добавлена проверка зависимостей компонентов.",
+    "Добавлена локальная история обновлений.",
+    "Добавлен отдельный центр обновления мобильного клиента.",
+    "Добавлены уведомления о доступных обновлениях."
+  ]
 }
