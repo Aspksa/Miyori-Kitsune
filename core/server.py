@@ -16,7 +16,7 @@ from account import create_pairing, get_profile, list_devices, pairing_status, r
 from cloudru import CloudRuError, credentials_status as cloudru_status, job_history as cloudru_job_history, list_training_configs as cloudru_training_configs, save_credentials as save_cloudru_credentials, submit_training_job as cloudru_submit_training_job, test_connection as cloudru_test_connection
 from training_data import build_dataset as build_training_dataset, list_datasets as list_training_datasets
 from assistant_gateway import build_context, capability_manifest, execute_action, state_snapshot
-from brain import status as brain_status, think as brain_think
+from brain import create_session as brain_create_session, delete_session as brain_delete_session, get_session as brain_get_session, list_sessions as brain_list_sessions, rename_session as brain_rename_session, status as brain_status, think as brain_think
 from brain_architecture import architecture_state, consolidate_now, overview_state
 from brain_scheduler import start as start_brain_scheduler, stop as stop_brain_scheduler
 from self_development import list_proposals, propose as propose_development, transition as transition_development
@@ -187,6 +187,15 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             self._json({"ok": True, "items": list_proposals()})
             return
 
+        if parsed.path == "/api/chat/sessions":
+            self._json({"ok": True, "items": brain_list_sessions()})
+            return
+
+        if parsed.path == "/api/chat/session":
+            session_id = query.get("id", [""])[0]
+            self._json({"ok": True, "session": brain_get_session(session_id)})
+            return
+
         if parsed.path == "/api/assistant/capabilities":
             self._json({"ok": True, **capability_manifest()})
             return
@@ -349,6 +358,18 @@ class MiyoriHandler(BaseHTTPRequestHandler):
                     approved=bool(payload.get("approved", False)),
                 )
                 self._json({"ok": True, "proposal": proposal})
+                return
+
+            if parsed.path == "/api/chat/session/create":
+                self._json({"ok": True, "session": brain_create_session(str(payload.get("title", "")))})
+                return
+
+            if parsed.path == "/api/chat/session/rename":
+                self._json({"ok": True, "session": brain_rename_session(str(payload.get("id", "")), str(payload.get("title", "")))})
+                return
+
+            if parsed.path == "/api/chat/session/delete":
+                self._json({"ok": True, "deleted": brain_delete_session(str(payload.get("id", "")))})
                 return
 
             if parsed.path == "/api/brain/think":
