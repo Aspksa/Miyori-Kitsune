@@ -18,6 +18,7 @@ BACKUP_DIR = ROOT / "backups"
 DATA_DIR = ROOT / "data"
 HISTORY_FILE = DATA_DIR / "update-history.json"
 INSTALL_STATE_FILE = DATA_DIR / "install-state.json"
+MOBILE_STATE_FILE = DATA_DIR / "mobile-state.json"
 MOBILE_DOWNLOAD_DIR = ROOT / "mobile" / "downloads"
 PRESERVE_TOP_LEVEL = {".git", "data", "logs", "backups", "mobile"}
 PRESERVE_FILES = {"config/local.json"}
@@ -215,8 +216,8 @@ def mobile_update_status() -> dict:
     remote = _fetch_json(RAW_VERSION_URL)
     local = local_manifest()
     remote_mobile = remote.get("mobile_client", {})
-    local_mobile = local.get("mobile_client", {})
-    current = str(local_mobile.get("version", local.get("components", {}).get("mobile", "0.0.0")))
+    mobile_state = _read_json(MOBILE_STATE_FILE)
+    current = str(mobile_state.get("version", "0.0.0"))
     latest = str(remote_mobile.get("version", current))
     min_core = str(remote_mobile.get("min_core", "0.0.0"))
     compatible = _version_gte(local["components"].get("core", "0.0.0"), min_core)
@@ -449,4 +450,10 @@ def download_mobile_client() -> dict:
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise UpdateError(f"Не удалось скачать мобильный клиент: {exc}") from exc
 
+    _write_json(MOBILE_STATE_FILE, {
+        "version": status["latest"],
+        "platform": status["platform"],
+        "path": _safe_relative(target),
+        "downloaded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+    })
     return {"ok": True, "downloaded": True, "path": _safe_relative(target), **status}
