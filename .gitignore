@@ -1,9 +1,0 @@
-__pycache__/
-*.py[cod]
-logs/*
-!logs/.gitkeep
-data/*
-!data/.gitkeep
-backups/
-config/local.json
-.env

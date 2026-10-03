@@ -143,3 +143,79 @@ document.getElementById("checkMobileButton").addEventListener("click",checkMobil
 document.getElementById("downloadMobileButton").addEventListener("click",downloadMobile);
 checkCore();loadHistory();checkUpdate();checkMobile();setInterval(checkCore,15000);
 const initial=location.hash.replace("#","");if(pages[initial])openPage(initial);
+
+
+function profileInitials(name){
+  return String(name||"AK").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase()||"AK";
+}
+
+function renderDevices(devices=[]){
+  const root=document.getElementById("deviceList");
+  if(!root)return;
+  if(!devices.length){root.innerHTML='<p class="empty-state">Устройств пока нет.</p>';return;}
+  root.innerHTML=devices.map(device=>{
+    const current=device.current?'<span class="device-current">Текущее</span>':'<button class="device-revoke" data-device-id="'+device.id+'">Отключить</button>';
+    return '<div class="device-row"><span class="device-icon">'+(device.type==="mobile"?"▣":"▦")+'</span><div><b>'+device.name+'</b><small>'+device.platform+' · '+device.status+'</small></div>'+current+'</div>';
+  }).join("");
+  root.querySelectorAll(".device-revoke").forEach(button=>button.addEventListener("click",async()=>{
+    if(!confirm("Отключить это устройство от Miyori Kitsune?"))return;
+    const data=await api("/api/account/device/revoke",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({device_id:button.dataset.deviceId})});
+    renderDevices(data.devices||[]);
+  }));
+}
+
+function renderAccount(data){
+  const profile=data.profile||{};
+  const name=profile.display_name||"Aspksa";
+  document.getElementById("profileName").value=name;
+  document.getElementById("profileLanguage").value=profile.language||"ru";
+  document.getElementById("profileTheme").value=profile.theme||"dark";
+  document.getElementById("profileNotifications").checked=profile.notifications!==false;
+  document.getElementById("profileSync").checked=!!profile.sync_enabled;
+  document.getElementById("profileLock").checked=!!profile.lock_enabled;
+  document.getElementById("accountDisplayTitle").textContent=name;
+  document.getElementById("accountAvatar").textContent=profileInitials(name);
+  document.querySelectorAll(".profile-avatar,.top-profile").forEach(el=>el.textContent=profileInitials(name));
+  document.getElementById("profileId").textContent=String(profile.profile_id||"—").slice(0,8);
+  document.getElementById("syncState").textContent=profile.sync_enabled?"Включена":"Выключена";
+  renderDevices(data.devices||[]);
+  const pairing=data.pairing||{};
+  if(pairing.active){
+    document.getElementById("pairingCode").textContent=String(pairing.code).split("").join(" ");
+    document.getElementById("pairingExpiry").textContent="Активен до "+new Date(pairing.expires_at*1000).toLocaleTimeString();
+  }
+}
+
+async function loadAccount(){
+  try{renderAccount(await api("/api/account"));}
+  catch(error){document.getElementById("profileSaveStatus").textContent=error.message;}
+}
+
+document.getElementById("profileForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const status=document.getElementById("profileSaveStatus");status.textContent="Сохранение…";
+  try{
+    const data=await api("/api/account/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      display_name:document.getElementById("profileName").value,
+      language:document.getElementById("profileLanguage").value,
+      theme:document.getElementById("profileTheme").value,
+      notifications:document.getElementById("profileNotifications").checked,
+      sync_enabled:document.getElementById("profileSync").checked,
+      lock_enabled:document.getElementById("profileLock").checked
+    })});
+    renderAccount({profile:data.profile,devices:(await api("/api/account")).devices});
+    status.textContent="Сохранено";
+  }catch(error){status.textContent=error.message;}
+});
+
+document.getElementById("refreshDevicesButton").addEventListener("click",loadAccount);
+document.getElementById("createPairingButton").addEventListener("click",async()=>{
+  const button=document.getElementById("createPairingButton");button.disabled=true;
+  try{
+    const data=await api("/api/account/pairing",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+    document.getElementById("pairingCode").textContent=String(data.code).split("").join(" ");
+    document.getElementById("pairingExpiry").textContent="Активен до "+new Date(data.expires_at*1000).toLocaleTimeString();
+  }catch(error){document.getElementById("pairingExpiry").textContent=error.message;}
+  finally{button.disabled=false;}
+});
+loadAccount();

@@ -12,6 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from account import create_pairing, get_profile, list_devices, pairing_status, revoke_device, save_profile
 from updater import (
     UpdateError,
     check_update,
@@ -109,6 +110,10 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             })
             return
 
+        if parsed.path == "/api/account":
+            self._json({"ok": True, "profile": get_profile(), "devices": list_devices(), "pairing": pairing_status()})
+            return
+
         if parsed.path == "/api/update/check":
             try:
                 self._json(check_update())
@@ -164,6 +169,22 @@ class MiyoriHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+
+        if parsed.path == "/api/account/save":
+            payload = self._read_json_body()
+            self._json({"ok": True, "profile": save_profile(payload)})
+            return
+
+        if parsed.path == "/api/account/pairing":
+            self._read_json_body()
+            self._json({"ok": True, **create_pairing()})
+            return
+
+        if parsed.path == "/api/account/device/revoke":
+            payload = self._read_json_body()
+            device_id = str(payload.get("device_id", ""))
+            self._json({"ok": True, "revoked": revoke_device(device_id), "devices": list_devices()})
+            return
 
         if parsed.path == "/api/update/apply":
             self._read_json_body()

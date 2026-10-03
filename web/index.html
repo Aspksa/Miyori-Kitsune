@@ -92,7 +92,44 @@
 <div class="progress-box" id="progressBox" hidden><div class="progress-head"><span id="progressStage">Подготовка…</span><b id="progressPercent">0%</b></div><div class="progress-track"><i id="progressBar"></i></div><small id="progressBytes">0 Б / 0 Б</small></div><div class="component-versions" id="componentVersions"></div><div class="update-actions"><button class="secondary" id="checkUpdateButton">Проверить обновления</button><button class="primary" id="applyUpdateButton" disabled>Установить обновление</button></div><p class="update-note" id="updateMessage">Пользовательские данные, логи и локальные настройки при обновлении не удаляются.</p></article>
 <article class="history-card"><div class="card-title"><b>История обновлений</b><button class="secondary" id="refreshHistoryButton">Обновить</button></div><div id="updateHistory" class="history-list"><p class="empty-state">История пока пуста.</p></div></article><aside class="safety-card"><span>✓</span><div><b>Безопасное обновление</b><p>Перед заменой файлов Miyori создаёт локальную резервную копию. После установки потребуется перезапуск.</p></div></aside></div></section>
 
-      <section class="page" id="page-account"><div class="page-heading"><p class="eyebrow">PROFILE</p><h2>Личный кабинет</h2><p>Персональный профиль и будущая синхронизация устройств.</p></div><div class="profile-page-card"><div class="profile-large-avatar">AK</div><div><h3>Aspksa</h3><p>Локальный профиль Miyori Kitsune</p><div class="profile-tags"><span>Owner</span><span>Portable</span><span>Local-first</span></div></div></div></section>
+      <section class="page" id="page-account">
+        <div class="page-heading"><p class="eyebrow">PROFILE / ACCOUNT</p><h2>Личный кабинет</h2><p>Локальный профиль, устройства, синхронизация и безопасность Miyori Kitsune.</p></div>
+        <div class="account-grid">
+          <article class="account-card account-profile">
+            <div class="account-card-head"><div class="profile-large-avatar" id="accountAvatar">AK</div><div><small>Локальный профиль</small><h3 id="accountDisplayTitle">Aspksa</h3><span class="account-status">● Local-first</span></div></div>
+            <form id="profileForm" class="profile-form">
+              <label>Имя профиля<input id="profileName" maxlength="64" autocomplete="off"></label>
+              <div class="form-two"><label>Язык<select id="profileLanguage"><option value="ru">Русский</option><option value="en">English</option></select></label><label>Тема<select id="profileTheme"><option value="dark">Тёмная</option><option value="light">Светлая</option><option value="system">Системная</option></select></label></div>
+              <div class="toggle-row"><span><b>Уведомления</b><small>Системные события и обновления</small></span><input type="checkbox" id="profileNotifications"></div>
+              <div class="toggle-row"><span><b>Синхронизация</b><small>Подготовка профиля к синхронизации устройств</small></span><input type="checkbox" id="profileSync"></div>
+              <div class="toggle-row"><span><b>Локальная блокировка</b><small>Основа для PIN/пароля профиля</small></span><input type="checkbox" id="profileLock"></div>
+              <div class="account-actions"><button type="submit" class="primary">Сохранить профиль</button><span id="profileSaveStatus"></span></div>
+            </form>
+          </article>
+
+          <article class="account-card">
+            <div class="card-title"><div><small>DEVICES</small><b>Подключённые устройства</b></div><button class="secondary" id="refreshDevicesButton">Обновить</button></div>
+            <div id="deviceList" class="device-list"><p class="empty-state">Загрузка устройств…</p></div>
+          </article>
+
+          <article class="account-card pairing-card">
+            <div class="card-title"><div><small>MOBILE PAIRING</small><b>Подключить мобильное приложение</b></div><span class="account-status">5 минут</span></div>
+            <p>Создайте одноразовый код сопряжения. Он автоматически истечёт через 5 минут.</p>
+            <div class="pairing-display"><strong id="pairingCode">— — — — — —</strong><small id="pairingExpiry">Код не создан</small></div>
+            <button class="primary" id="createPairingButton">Создать код сопряжения</button>
+          </article>
+
+          <article class="account-card">
+            <div class="card-title"><div><small>DATA & SECURITY</small><b>Безопасность и данные</b></div></div>
+            <div class="account-info-list">
+              <div><span>Хранение профиля</span><b>Локально</b></div>
+              <div><span>Профиль</span><b id="profileId">—</b></div>
+              <div><span>Версия модуля</span><b data-version="account">v—</b></div>
+              <div><span>Облачная синхронизация</span><b id="syncState">Выключена</b></div>
+            </div>
+          </article>
+        </div>
+      </section>
 
       <section class="page" id="page-mobile"><div class="page-heading"><p class="eyebrow">MOBILE</p><h2>Мобильное приложение</h2><p>Отдельный канал обновления мобильного клиента с проверкой совместимости с текущим Core.</p></div><div class="mobile-update-grid"><article class="feature-card large"><span class="feature-icon">▣</span><h3>Мобильный клиент</h3><div class="mobile-version-row"><span>Установлено <b id="mobileCurrent">—</b></span><span>Доступно <b id="mobileLatest">—</b></span></div><p id="mobileNotes">Проверка версии мобильного клиента ещё не выполнялась.</p><div class="update-actions"><button class="secondary" id="checkMobileButton">Проверить мобильную версию</button><button class="primary" id="downloadMobileButton" disabled>Скачать обновление</button></div></article><aside class="safety-card"><span>↔</span><div><b>Совместимость</b><p id="mobileCompatibility">Минимальная версия ядра будет проверена автоматически.</p></div></aside></div></section>
     </main>
