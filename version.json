@@ -1,9 +1,9 @@
 {
-  "version": "0.12.0",
+  "version": "0.13.0",
   "channel": "stable",
   "repository": "Aspksa/Miyori-Kitsune",
   "components": {
-    "core": "0.12.0",
+    "core": "0.13.0",
     "interface": "0.10.0",
     "updater": "0.4.0",
     "chat": "1.1.0",
@@ -12,26 +12,28 @@
     "settings": "0.3.0",
     "account": "0.5.0",
     "mobile": "0.2.0",
-    "memory": "0.2.0",
-    "assistant": "0.2.0",
-    "brain": "0.5.0",
+    "memory": "0.3.0",
+    "assistant": "0.3.0",
+    "brain": "0.6.0",
     "identity": "0.1.0",
     "world_model": "0.1.0",
     "reflection": "0.1.0",
     "learning": "0.1.0",
     "skills": "0.1.0",
-    "self_development": "0.1.0",
-    "safety_kernel": "0.1.0",
+    "self_development": "0.2.0",
+    "safety_kernel": "0.2.0",
     "sleep_engine": "0.1.0",
     "cloudru": "0.1.0",
-    "training_data": "0.1.0"
+    "training_data": "0.1.0",
+    "model_registry": "0.1.0",
+    "embodiment": "0.1.0"
   },
   "dependencies": {
     "chat": {
-      "core": "0.12.0",
-      "memory": "0.2.0",
-      "assistant": "0.2.0",
-      "brain": "0.5.0",
+      "core": "0.13.0",
+      "memory": "0.3.0",
+      "assistant": "0.3.0",
+      "brain": "0.6.0",
       "cloudru": "0.1.0"
     },
     "workspace": {
@@ -45,7 +47,7 @@
       "core": "0.4.0"
     },
     "account": {
-      "core": "0.12.0",
+      "core": "0.13.0",
       "cloudru": "0.1.0"
     },
     "mobile": {
@@ -59,22 +61,24 @@
       "memory": "0.2.0"
     },
     "brain": {
-      "core": "0.12.0",
-      "assistant": "0.2.0",
-      "memory": "0.2.0",
+      "core": "0.13.0",
+      "assistant": "0.3.0",
+      "memory": "0.3.0",
       "workspace": "0.4.0",
       "identity": "0.1.0",
       "world_model": "0.1.0",
       "reflection": "0.1.0",
       "learning": "0.1.0",
       "skills": "0.1.0",
-      "safety_kernel": "0.1.0",
+      "safety_kernel": "0.2.0",
       "cloudru": "0.1.0",
-      "training_data": "0.1.0"
+      "training_data": "0.1.0",
+      "model_registry": "0.1.0",
+      "embodiment": "0.1.0"
     },
     "self_development": {
       "core": "0.9.0",
-      "safety_kernel": "0.1.0"
+      "safety_kernel": "0.2.0"
     },
     "sleep_engine": {
       "core": "0.9.0",
@@ -101,12 +105,12 @@
     "notes": "Отдельный пакет мобильного клиента будет публиковаться через GitHub Releases."
   },
   "changes": [
-    "Добавлены постоянные диалоги Miyori с локальным хранением истории.",
-    "Каждая беседа имеет собственный ID, название, дату обновления, превью и до 200 последних сообщений.",
-    "Название нового диалога автоматически формируется по первому сообщению пользователя.",
-    "Последний активный разговор автоматически восстанавливается после перезапуска интерфейса.",
-    "Добавлен компактный список диалогов прямо в шапке чата без отдельной страницы.",
-    "Поддерживаются создание нового диалога, переключение, переименование и удаление.",
-    "История текущей беседы загружается из Brain-сессии и продолжает использовать тот же контекст и Action Gateway."
+    "Добавлен Model Registry: версии моделей, candidate/testing/approved/active lifecycle, явное подтверждение активации и rollback foundation.",
+    "Память получила importance, confidence, source и relevance retrieval с учётом запроса, давности и важности.",
+    "Добавлен Embodiment Registry: глаза, уши, голос, руки и ноги как отдельные sensor/actuator каналы с адаптерами и политиками доступа.",
+    "Cognitive Loop теперь передаёт текущий запрос в retrieval памяти и включает состояние сенсорных каналов в perception/reflection.",
+    "Self-Development получил строгую state machine; запрещены опасные перескоки стадий, применение всегда требует явного подтверждения.",
+    "Safety Kernel расширен на Brain, Memory, Model Registry и Embodiment.",
+    "Добавлены регрессионные тесты cognitive foundation."
   ]
 }
