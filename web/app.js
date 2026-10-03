@@ -252,7 +252,6 @@ async function sendBrainMessage(value,confirmed=false,echoUser=true){
     pendingBrainRequest=null;
     await Promise.all([loadBrainOverview(false),loadWorkspace(activeProjectId),loadMemory(),refreshActiveContext()]);
     await loadChatSessions(false);
-    if(chatSessionId)await openChatSession(chatSessionId,false);
   }catch(error){
     appendChatMessage("assistant",error.message,{badge:"ОШИБКА",system:true});
   }finally{
