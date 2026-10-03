@@ -13,6 +13,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from account import create_pairing, get_profile, list_devices, pairing_status, revoke_device, save_profile
+from memory import active_context, add_memory, get_memory, set_category_enabled
 from updater import (
     UpdateError,
     check_update,
@@ -110,6 +111,10 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             })
             return
 
+        if parsed.path == "/api/memory":
+            self._json({"ok": True, **get_memory(), "active_context": active_context()})
+            return
+
         if parsed.path == "/api/account":
             self._json({"ok": True, "profile": get_profile(), "devices": list_devices(), "pairing": pairing_status()})
             return
@@ -169,6 +174,22 @@ class MiyoriHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+
+        if parsed.path == "/api/memory/add":
+            payload = self._read_json_body()
+            try:
+                self._json({"ok": True, "item": add_memory(str(payload.get("category", "")), str(payload.get("text", ""))), **get_memory()})
+            except ValueError as exc:
+                self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+
+        if parsed.path == "/api/memory/category":
+            payload = self._read_json_body()
+            try:
+                self._json({"ok": True, **set_category_enabled(str(payload.get("category", "")), bool(payload.get("enabled", False))), **get_memory()})
+            except ValueError as exc:
+                self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
 
         if parsed.path == "/api/account/save":
             payload = self._read_json_body()
