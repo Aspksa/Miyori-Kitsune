@@ -7,6 +7,7 @@ import uuid
 from pathlib import Path
 
 from assistant_gateway import build_context, capability_manifest, execute_action
+from brain_runtime import InternalPlannerRuntime
 from entities import get_project, list_projects, list_tasks
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -16,6 +17,7 @@ BRAIN_LOG = BRAIN_DIR / "brain-events.json"
 
 BRAIN_NAME = "Miyori Kitsune"
 BRAIN_VERSION = "0.1.0"
+MODEL_RUNTIME = InternalPlannerRuntime()
 
 
 def _now() -> int:
@@ -72,8 +74,9 @@ def status() -> dict:
         "name": BRAIN_NAME,
         "version": BRAIN_VERSION,
         "runtime": "miyori-cognitive-runtime",
-        "model": "internal-rule-planner",
-        "ready": True,
+        "model_runtime": MODEL_RUNTIME.name,
+        "model_runtime_version": MODEL_RUNTIME.version,
+        "ready": MODEL_RUNTIME.available(),
         "external_model": False,
         "capabilities": capability_manifest(),
     }
@@ -198,7 +201,10 @@ def think(message: str, session_id: str = "default", project_id: str | None = No
         raise ValueError("Пустой запрос.")
 
     _append_session(session_id, "user", message, {"project_id": project_id, "task_id": task_id})
+    base_context = build_context(project_id=project_id, task_id=task_id)
+    runtime_output = MODEL_RUNTIME.infer(message, base_context, capability_manifest())
     plan = _plan(message, project_id=project_id)
+    plan["runtime"] = runtime_output.metadata or {}
     action_results = []
 
     for step in plan.get("actions", []):
