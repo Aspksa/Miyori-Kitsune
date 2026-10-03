@@ -21,7 +21,7 @@ SESSIONS_DIR = BRAIN_DIR / "sessions"
 BRAIN_LOG = BRAIN_DIR / "brain-events.json"
 
 BRAIN_NAME = "Miyori Kitsune"
-BRAIN_VERSION = "0.1.0"
+BRAIN_VERSION = "0.2.0"
 MODEL_RUNTIME = InternalPlannerRuntime()
 
 
@@ -160,6 +160,9 @@ def _append_session(session_id: str, role: str, content: str, meta: dict | None 
 
 
 def status() -> dict:
+    models = model_registry_summary()
+    body = embodiment_status()
+    active_model = models.get("active", {})
     return {
         "name": BRAIN_NAME,
         "version": BRAIN_VERSION,
@@ -167,7 +170,10 @@ def status() -> dict:
         "model_runtime": MODEL_RUNTIME.name,
         "model_runtime_version": MODEL_RUNTIME.version,
         "ready": MODEL_RUNTIME.available(),
-        "external_model": False,
+        "external_model": active_model.get("runtime") not in {None, "internal"},
+        "active_model": active_model,
+        "models": models,
+        "embodiment": body,
         "identity": get_identity(),
         "skills": skill_registry(),
         "world_model": {
