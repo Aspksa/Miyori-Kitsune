@@ -61,12 +61,15 @@ class LlamaCppRuntime:
         try:
             from llama_cpp import Llama
             metadata = self.model.get("metadata", {}) if isinstance(self.model.get("metadata"), dict) else {}
-            self._llm = Llama(
-                model_path=str(self._artifact()),
-                n_ctx=max(1024, int(metadata.get("context_length", 4096) or 4096)),
-                n_threads=metadata.get("threads"),
-                verbose=False,
-            )
+            kwargs = {
+                "model_path": str(self._artifact()),
+                "n_ctx": max(1024, int(metadata.get("context_length", 4096) or 4096)),
+                "verbose": False,
+            }
+            threads = metadata.get("threads")
+            if isinstance(threads, int) and threads > 0:
+                kwargs["n_threads"] = threads
+            self._llm = Llama(**kwargs)
             return self._llm
         except Exception as exc:
             self._error = str(exc)
@@ -162,4 +165,5 @@ def runtime_status() -> dict:
         "available": bool(available),
         "neural": model.get("runtime") not in {None, "internal"},
         "fallback": "miyori-internal-planner" if not available and model.get("runtime") != "internal" else None,
+        "reason": getattr(runtime, "_error", None) or getattr(runtime, "reason", None),
     }
