@@ -159,6 +159,13 @@ class CloudStudentRuntime:
             if str(cloud.get("version")) != self.version:
                 self._error = "Configured Cloud Student version does not match active Model Registry version."
                 return False
+            metadata = self.model.get("metadata", {}) if isinstance(self.model.get("metadata"), dict) else {}
+            if str(cloud.get("endpoint") or "").rstrip("/") != str(metadata.get("endpoint") or "").rstrip("/"):
+                self._error = "Configured Cloud Student endpoint does not match the active registry model."
+                return False
+            if str(cloud.get("model") or "") != str(metadata.get("model_name") or ""):
+                self._error = "Configured Cloud Student model name does not match the active registry model."
+                return False
             return True
         except Exception as exc:
             self._error = str(exc)
