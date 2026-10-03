@@ -6,8 +6,8 @@
     "name": "Miyori Kitsune",
     "repository": "Aspksa/Miyori-Kitsune",
     "branch": "main",
-    "current_release": "0.13.0",
-    "latest_known_commit": "fb9768388769467360fc87eda84995a9b87f21f6",
+    "current_release": "0.14.0",
+    "latest_known_commit": "3a877a379cfceb8714ad99a20ef6f115f0c853e5",
     "launcher": "MiyoriKitsune.bat",
     "runtime": "Python 3.10+ stdlib local HTTP server on 127.0.0.1",
     "primary_manifest": "version.json",
@@ -49,7 +49,11 @@
       "safety_kernel": "core/safety_kernel.py",
       "architecture_state": "core/brain_architecture.py",
       "model_registry": "core/model_registry.py",
-      "embodiment": "core/embodiment.py"
+      "embodiment": "core/embodiment.py",
+      "embeddings": "core/embeddings.py",
+      "semantic_memory": "core/semantic_memory.py",
+      "neural_runtime": "core/neural_runtime.py",
+      "model_evaluation": "core/model_evaluation.py"
     },
     "training": {
       "cloudru_connector": "core/cloudru.py",
@@ -80,10 +84,13 @@
     "training_dataset_manifest": "data/training/datasets.json",
     "cloudru_jobs": "data/training/cloudru-jobs.json",
     "model_registry": "data/brain/models/registry.json",
-    "embodiment": "data/brain/embodiment.json"
+    "embodiment": "data/brain/embodiment.json",
+    "semantic_memory_index": "data/brain/memory-vectors.json",
+    "model_evaluations": "data/brain/models/evaluations.json",
+    "local_model_artifacts": "data/models/"
   },
   "components": {
-    "core": "0.13.0",
+    "core": "0.14.0",
     "interface": "0.10.0",
     "updater": "0.4.0",
     "chat": "1.1.0",
@@ -92,9 +99,9 @@
     "settings": "0.3.0",
     "account": "0.5.0",
     "mobile": "0.2.0",
-    "memory": "0.3.0",
+    "memory": "0.4.0",
     "assistant": "0.3.0",
-    "brain": "0.6.0",
+    "brain": "0.7.0",
     "identity": "0.1.0",
     "world_model": "0.1.0",
     "reflection": "0.1.0",
@@ -106,7 +113,11 @@
     "cloudru": "0.1.0",
     "training_data": "0.1.0",
     "model_registry": "0.1.0",
-    "embodiment": "0.1.0"
+    "embodiment": "0.1.0",
+    "embeddings": "0.1.0",
+    "semantic_memory": "0.1.0",
+    "neural_runtime": "0.1.0",
+    "model_evaluation": "0.1.0"
   },
   "major_features": {
     "projects_tasks": true,
@@ -133,10 +144,15 @@
     "model_registry": true,
     "relevance_memory_retrieval": true,
     "embodiment_registry": true,
-    "strict_self_development_state_machine": true
+    "strict_self_development_state_machine": true,
+    "neural_runtime_adapter": true,
+    "local_gguf_runtime": true,
+    "hybrid_vector_memory": true,
+    "neural_embeddings_optional": true,
+    "model_evaluation_harness": true
   },
   "current_brain_behavior": {
-    "model_runtime": "internal rule/planner runtime; not yet a trained neural model",
+    "model_runtime": "dynamic runtime selected from Model Registry; internal planner is safe fallback; llama_cpp local GGUF runtime supported when configured",
     "cycle": [
       "perception",
       "context/world model",
@@ -156,14 +172,16 @@
     ],
     "direct_file_access": false,
     "destructive_actions_require_confirmation": true,
-    "memory_retrieval": "query-aware relevance scoring using lexical match + importance + confidence + recency; true embeddings still pending",
+    "memory_retrieval": "hybrid retrieval: lexical + importance + confidence + recency + vector similarity; real neural semantic weight is enabled when a local sentence-transformers model is configured",
     "embodiment": {
       "vision": "enabled via chat-image adapter; direct camera hardware not connected",
       "hearing": "channel defined, disabled until audio/microphone adapter exists",
       "speech": "channel defined, disabled until TTS adapter exists",
       "hands": "enabled through Action Gateway for controlled digital actions",
       "mobility": "channel defined, disabled until navigation/robotics adapter exists"
-    }
+    },
+    "neural_safety": "free conversation may use neural runtime; real actions remain planned/executed through deterministic planner and Action Gateway",
+    "model_promotion": "evaluation never auto-promotes; active model promotion still requires explicit approval"
   },
   "chat": {
     "role": "primary user interface",
@@ -231,7 +249,10 @@
       "GET /api/brain/overview",
       "GET /api/brain/architecture",
       "POST /api/brain/think",
-      "POST /api/brain/sleep"
+      "POST /api/brain/sleep",
+      "GET /api/brain/models",
+      "GET /api/brain/memory/semantic",
+      "POST /api/brain/model/evaluate"
     ],
     "development": [
       "GET /api/brain/development",
@@ -295,9 +316,9 @@
       "localhost mutating APIs remain CSRF-sensitive",
       "updater still needs ZIP-slip validation, hashes/signatures, atomic install and rollback API",
       "JSON storage will eventually need migration to SQLite as data grows",
-      "embodiment channels are registry/contracts only; direct camera, microphone, TTS and physical mobility adapters are not implemented yet",
-      "memory relevance retrieval is not yet vector/embedding semantic search",
-      "Model Registry exists, but a trainable neural inference backend is not connected yet"
+      "real neural embeddings require an explicitly configured local sentence-transformers model",
+      "real neural generation requires a local GGUF artifact plus llama-cpp-python; no trained Miyori weights exist yet",
+      "camera, microphone, TTS and physical mobility adapters are still not implemented"
     ]
   },
   "critical_repo_history": {
@@ -317,70 +338,67 @@
   ],
   "latest_commits": [
     [
-      "fb9768388769467360fc87eda84995a9b87f21f6",
-      "Release Miyori cognitive foundation v0.13.0"
+      "3a877a379cfceb8714ad99a20ef6f115f0c853e5",
+      "Release Miyori Neural Core foundation v0.14.0"
     ],
     [
-      "9101d40da9792deb9b1fc2b90be35d907977bee7",
-      "Add cognitive foundation regression tests"
+      "3eb6ced9fb166afb63b79272f52180f4090b1ad4",
+      "Add neural runtime and vector memory tests"
     ],
     [
-      "dddd878cf8e5077e06b2a2b0c611aee1bab09725",
-      "Integrate model and embodiment state into Brain architecture"
+      "62aa152187ea16ae0abe53a5e32ef4b81e70dc17",
+      "Harden local neural runtime loading"
     ],
     [
-      "e3fd1cf190d76594047725f136db0f4b85d9fc9b",
-      "Fix Brain integration imports and relevance context"
+      "eb93b29f7c8689da277ff93f2ab535cda7434815",
+      "Keep neural embeddings local-only"
     ],
     [
-      "da710fa3f624fc8e696bbe6c2808954babd648e8",
-      "Upgrade Miyori cognitive foundation: self_development.py"
+      "c82844bc5d43cb84d1f8857e7c8f9a4c0d0fbe5e",
+      "Integrate neural runtime and semantic memory: server.py"
     ]
   ],
   "recommended_next_steps": [
     {
       "priority": 1,
-      "name": "Neural Runtime and semantic retrieval",
+      "name": "Acquire first Miyori base model",
       "details": [
-        "attach a real neural backend behind BrainModelRuntime",
-        "tokenizer/model artifact contract",
-        "local or provider embeddings",
-        "vector semantic memory index",
-        "context budget and retrieval fusion",
-        "evaluation harness before model promotion"
+        "choose a compact multilingual/russian-capable open-weight GGUF base model",
+        "place artifact under data/models locally, never commit weights to Git",
+        "register as candidate with runtime llama_cpp",
+        "run evaluation before any activation",
+        "keep internal planner as fallback"
       ]
     },
     {
       "priority": 2,
-      "name": "Eyes, ears and voice adapters",
+      "name": "Real neural semantic memory",
       "details": [
-        "image/screen perception adapter",
-        "optional camera adapter with explicit permission",
-        "microphone/STT adapter with explicit permission",
-        "TTS/voice output adapter",
-        "observation normalization into World Model and Memory"
+        "choose a local multilingual sentence-transformers embedding model",
+        "configure MIYORI_EMBEDDING_MODEL to a local path",
+        "rebuild vector index",
+        "measure retrieval quality against current deterministic fallback"
       ]
     },
     {
       "priority": 3,
-      "name": "Digital hands and mobility",
+      "name": "Training lifecycle",
       "details": [
-        "expand Action Gateway with scoped file/computer tools",
-        "permission scopes and per-action audit",
-        "sandbox execution",
-        "navigation adapter only after safety boundaries are enforced"
+        "dataset validation and train/validation split",
+        "Cloud.ru cost estimate and budget ceiling",
+        "explicit confirmation before paid GPU training",
+        "download artifacts to Model Registry",
+        "evaluate -> compare -> approve -> promote -> rollback"
       ]
     },
     {
       "priority": 4,
-      "name": "Training orchestration",
+      "name": "Eyes, ears and digital hands",
       "details": [
-        "dataset validation/sanitization",
-        "cost estimate before Cloud.ru GPU run",
-        "budget ceiling and explicit confirmation",
-        "job status polling",
-        "artifact download into Model Registry",
-        "evaluate -> compare -> approve -> promote -> rollback"
+        "screen/image perception adapter",
+        "camera permission adapter",
+        "microphone/STT and TTS adapters",
+        "sandboxed file/computer tools behind Action Gateway"
       ]
     }
   ],
