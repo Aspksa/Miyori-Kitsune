@@ -1,20 +1,20 @@
 {
-  "version": "0.14.0",
+  "version": "0.15.0",
   "channel": "stable",
   "repository": "Aspksa/Miyori-Kitsune",
   "components": {
-    "core": "0.14.0",
-    "interface": "0.10.0",
+    "core": "0.15.0",
+    "interface": "0.11.0",
     "updater": "0.4.0",
-    "chat": "1.1.0",
+    "chat": "1.2.0",
     "workspace": "0.4.0",
     "home": "0.3.0",
     "settings": "0.3.0",
-    "account": "0.5.0",
+    "account": "0.6.0",
     "mobile": "0.2.0",
     "memory": "0.4.0",
     "assistant": "0.3.0",
-    "brain": "0.7.0",
+    "brain": "0.8.0",
     "identity": "0.1.0",
     "world_model": "0.1.0",
     "reflection": "0.1.0",
@@ -23,22 +23,24 @@
     "self_development": "0.2.0",
     "safety_kernel": "0.2.0",
     "sleep_engine": "0.1.0",
-    "cloudru": "0.1.0",
-    "training_data": "0.1.0",
+    "cloudru": "0.2.0",
+    "training_data": "0.2.0",
     "model_registry": "0.1.0",
     "embodiment": "0.1.0",
     "embeddings": "0.1.0",
     "semantic_memory": "0.1.0",
     "neural_runtime": "0.1.0",
-    "model_evaluation": "0.1.0"
+    "model_evaluation": "0.1.0",
+    "teacher_gateway": "0.1.0"
   },
   "dependencies": {
     "chat": {
-      "core": "0.14.0",
+      "core": "0.15.0",
       "memory": "0.4.0",
       "assistant": "0.3.0",
-      "brain": "0.7.0",
-      "cloudru": "0.1.0"
+      "brain": "0.8.0",
+      "cloudru": "0.2.0",
+      "teacher_gateway": "0.1.0"
     },
     "workspace": {
       "core": "0.7.0",
@@ -51,8 +53,8 @@
       "core": "0.4.0"
     },
     "account": {
-      "core": "0.14.0",
-      "cloudru": "0.1.0"
+      "core": "0.15.0",
+      "cloudru": "0.2.0"
     },
     "mobile": {
       "core": "0.4.0"
@@ -67,7 +69,7 @@
       "memory": "0.2.0"
     },
     "brain": {
-      "core": "0.14.0",
+      "core": "0.15.0",
       "assistant": "0.3.0",
       "memory": "0.4.0",
       "workspace": "0.4.0",
@@ -77,14 +79,15 @@
       "learning": "0.1.0",
       "skills": "0.1.0",
       "safety_kernel": "0.2.0",
-      "cloudru": "0.1.0",
-      "training_data": "0.1.0",
+      "cloudru": "0.2.0",
+      "training_data": "0.2.0",
       "model_registry": "0.1.0",
       "embodiment": "0.1.0",
       "embeddings": "0.1.0",
       "semantic_memory": "0.1.0",
       "neural_runtime": "0.1.0",
-      "model_evaluation": "0.1.0"
+      "model_evaluation": "0.1.0",
+      "teacher_gateway": "0.1.0"
     },
     "self_development": {
       "core": "0.9.0",
@@ -98,13 +101,14 @@
       "world_model": "0.1.0"
     },
     "cloudru": {
-      "core": "0.12.0"
+      "core": "0.15.0"
     },
     "training_data": {
-      "core": "0.12.0",
-      "brain": "0.5.0",
+      "core": "0.15.0",
+      "brain": "0.8.0",
       "learning": "0.1.0",
-      "reflection": "0.1.0"
+      "reflection": "0.1.0",
+      "teacher_gateway": "0.1.0"
     },
     "neural_runtime": {
       "core": "0.14.0",
@@ -118,6 +122,10 @@
       "core": "0.14.0",
       "neural_runtime": "0.1.0",
       "model_registry": "0.1.0"
+    },
+    "teacher_gateway": {
+      "core": "0.15.0",
+      "cloudru": "0.2.0"
     }
   },
   "mobile_client": {
@@ -128,13 +136,15 @@
     "notes": "Отдельный пакет мобильного клиента будет публиковаться через GitHub Releases."
   },
   "changes": [
-    "Добавлен Neural Runtime: активная локальная модель может отвечать на обычные сообщения через BrainModelRuntime, а действия остаются под контролем planner + Action Gateway.",
-    "Добавлен локальный llama.cpp adapter для GGUF-моделей; при отсутствии веса или llama-cpp-python Miyori автоматически использует безопасный internal planner.",
-    "Добавлен Embeddings layer: локальные neural embeddings через sentence-transformers при явно настроенной локальной модели и deterministic vector fallback без скачиваний.",
-    "Memory v0.4 использует hybrid retrieval: lexical/importance/confidence/recency + vector similarity; при neural embeddings повышается вес semantic similarity.",
-    "Добавлен persistent vector index data/brain/memory-vectors.json с автоматической синхронизацией по изменениям памяти.",
-    "Добавлен Model Evaluation Harness; оценки сохраняются отдельно и никогда автоматически не продвигают модель в active.",
-    "Добавлены API /api/brain/models, /api/brain/memory/semantic и POST /api/brain/model/evaluate.",
-    "Добавлены изолированные регрессионные тесты neural runtime и vector memory."
+    "Добавлен отдельный Cloud Teacher Gateway: Teacher не является Miyori и не заменяет её ответы.",
+    "Cloud.ru Foundation Models интегрирован через отдельный API Key и OpenAI-compatible endpoint; GPU Training credentials остаются отдельными.",
+    "Автопроверка Teacher выключена по умолчанию, чтобы не создавать неожиданные платные запросы.",
+    "После ответа Miyori в чате можно вручную запустить Teacher review и увидеть отдельную критику.",
+    "Teacher feedback попадает в training dataset только после явного подтверждения пользователя «В обучение».",
+    "Brain response теперь возвращает pipeline trace: runtime Miyori, тип retrieval памяти и факт Teacher review.",
+    "Чат v1.2 показывает статусы мозга, памяти, модели мира, навыков, Cloud Teacher и обучения.",
+    "Личный кабинет разделяет Foundation Models Teacher и GPU Training настройки.",
+    "Добавлены API Teacher status/feedback/review/mark и проверка Foundation Models подключения.",
+    "Добавлены regression tests, подтверждающие, что Teacher не вызывает платный review при выключенной автопроверке и не принимает данные в обучение автоматически."
   ]
 }
