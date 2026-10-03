@@ -179,7 +179,7 @@ async function api(url,options={}){
   return data;
 }
 
-const componentLabels={core:"Ядро",interface:"Интерфейс",updater:"Обновлятор",assistant:"Miyori Action Gateway",chat:"Miyori Kitsune",memory:"Память",workspace:"Рабочее пространство",home:"Домашнее пространство",settings:"Настройки",account:"Личный кабинет",mobile:"Мобильное приложение"};
+const componentLabels={core:"Ядро",interface:"Интерфейс",updater:"Обновлятор",assistant:"Miyori Action Gateway",chat:"Чат Miyori",brain:"Miyori Brain",cloudru:"Cloud.ru Training",training_data:"Данные обучения",memory:"Память",workspace:"Рабочее пространство",home:"Домашнее пространство",settings:"Настройки",account:"Личный кабинет",mobile:"Мобильное приложение"};
 
 function applyComponentVersions(components={}){
   Object.entries(components).forEach(([name,value])=>{
