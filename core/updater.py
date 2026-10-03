@@ -32,8 +32,18 @@ def _read_json(path: Path) -> dict:
         return {}
 
 
+def local_manifest() -> dict:
+    data = _read_json(VERSION_FILE)
+    return {
+        "version": str(data.get("version", "0.0.0")),
+        "channel": str(data.get("channel", "stable")),
+        "repository": str(data.get("repository", REPO)),
+        "components": {str(k): str(v) for k, v in data.get("components", {}).items()},
+    }
+
+
 def local_version() -> str:
-    return str(_read_json(VERSION_FILE).get("version", "0.0.0"))
+    return local_manifest()["version"]
 
 
 def _fetch_json(url: str, timeout: int = 12) -> dict:
@@ -54,15 +64,29 @@ def _fetch_json(url: str, timeout: int = 12) -> dict:
 
 def check_update() -> dict:
     remote = _fetch_json(RAW_VERSION_URL)
-    current = local_version()
+    local = local_manifest()
+    current = local["version"]
     latest = str(remote.get("version", current))
+    local_components = local.get("components", {})
+    remote_components = {str(k): str(v) for k, v in remote.get("components", {}).items()}
+    component_changes = []
+    for name in sorted(set(local_components) | set(remote_components)):
+        installed = str(local_components.get(name, "0.0.0"))
+        available = str(remote_components.get(name, installed))
+        component_changes.append({
+            "name": name,
+            "current": installed,
+            "latest": available,
+            "changed": installed != available,
+        })
     return {
         "ok": True,
         "current": current,
         "latest": latest,
-        "available": latest != current,
+        "available": latest != current or any(item["changed"] for item in component_changes),
         "channel": str(remote.get("channel", "stable")),
         "repository": REPO,
+        "components": component_changes,
     }
 
 
@@ -153,4 +177,5 @@ def apply_update() -> dict:
         "files_backed_up": backed_up,
         "backup": _safe_relative(backup_root),
         "repository": REPO,
+        "components": status.get("components", []),
     }
