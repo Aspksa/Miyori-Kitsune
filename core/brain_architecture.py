@@ -31,3 +31,38 @@ def architecture_state():
 
 def consolidate_now():
     return consolidate()
+
+
+def overview_state():
+    world = snapshot()
+    learning = list_learning(500)
+    reflections = list_reflections(500)
+    skills = registry()
+    proposals = list_proposals(500)
+    datasets = list_datasets(100)
+    cloud = cloudru_status()
+    return {
+        "identity": get_identity(),
+        "world_model": {
+            "nodes": len(world.get("nodes", {})),
+            "edges": len(world.get("edges", [])),
+        },
+        "skills": {
+            "count": len(skills),
+            "enabled": sum(1 for item in skills.values() if item.get("enabled", True)),
+        },
+        "learning": {
+            "count": len(learning),
+            "confirmed": sum(1 for item in learning if item.get("stage") in {"confirmed", "retained", "applied", "reassessed"}),
+        },
+        "reflections": {"count": len(reflections)},
+        "development": {
+            "count": len(proposals),
+            "active": sum(1 for item in proposals if item.get("state") not in {"rejected", "applied", "rolled_back"}),
+        },
+        "training": {
+            "cloudru": cloud,
+            "datasets": len(datasets),
+            "latest_dataset": datasets[0] if datasets else None,
+        },
+    }
