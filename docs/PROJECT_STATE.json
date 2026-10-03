@@ -6,8 +6,8 @@
     "name": "Miyori Kitsune",
     "repository": "Aspksa/Miyori-Kitsune",
     "branch": "main",
-    "current_release": "0.15.0",
-    "latest_known_commit": "7d2ad549d37e0220d3299f78207f9fb36ff9165c",
+    "current_release": "0.16.0",
+    "latest_known_commit": "b4ae809dc6a312d08b6e14891b5656e5d5202be5",
     "launcher": "MiyoriKitsune.bat",
     "runtime": "Python 3.10+ stdlib local HTTP server on 127.0.0.1",
     "primary_manifest": "version.json",
@@ -57,7 +57,8 @@
       "semantic_memory": "core/semantic_memory.py",
       "neural_runtime": "core/neural_runtime.py",
       "model_evaluation": "core/model_evaluation.py",
-      "teacher_gateway": "core/teacher_gateway.py"
+      "teacher_gateway": "core/teacher_gateway.py",
+      "student_gateway": "core/student_gateway.py"
     },
     "training": {
       "cloudru_connector": "core/cloudru.py",
@@ -83,7 +84,7 @@
     "skills": "data/brain/skills.json",
     "self_development": "data/brain/self-development/proposals.json",
     "sleep_state": "data/brain/sleep-state.json",
-    "cloudru_credentials": "data/secrets/cloudru.json",
+    "cloudru_credentials": "data/secrets/cloudru.json (Teacher, GPU Training and versioned Student ML Inference configs; secrets never returned by status API)",
     "training_datasets": "data/training/datasets/*.jsonl",
     "training_dataset_manifest": "data/training/datasets.json",
     "cloudru_jobs": "data/training/cloudru-jobs.json",
@@ -95,18 +96,18 @@
     "teacher_feedback": "data/brain/teacher/feedback.json"
   },
   "components": {
-    "core": "0.15.0",
-    "interface": "0.11.0",
+    "core": "0.16.0",
+    "interface": "0.12.0",
     "updater": "0.4.0",
-    "chat": "1.2.0",
+    "chat": "1.3.0",
     "workspace": "0.4.0",
     "home": "0.3.0",
     "settings": "0.3.0",
-    "account": "0.6.0",
+    "account": "0.7.0",
     "mobile": "0.2.0",
     "memory": "0.4.0",
     "assistant": "0.3.0",
-    "brain": "0.8.0",
+    "brain": "0.9.0",
     "identity": "0.1.0",
     "world_model": "0.1.0",
     "reflection": "0.1.0",
@@ -115,15 +116,16 @@
     "self_development": "0.2.0",
     "safety_kernel": "0.2.0",
     "sleep_engine": "0.1.0",
-    "cloudru": "0.2.0",
+    "cloudru": "0.3.0",
     "training_data": "0.2.0",
     "model_registry": "0.1.0",
     "embodiment": "0.1.0",
     "embeddings": "0.1.0",
     "semantic_memory": "0.1.0",
-    "neural_runtime": "0.1.0",
-    "model_evaluation": "0.1.0",
-    "teacher_gateway": "0.1.0"
+    "neural_runtime": "0.2.0",
+    "model_evaluation": "0.2.0",
+    "teacher_gateway": "0.1.0",
+    "student_gateway": "0.1.0"
   },
   "major_features": {
     "projects_tasks": true,
@@ -161,10 +163,17 @@
     "teacher_auto_review_opt_in": true,
     "teacher_feedback_human_acceptance": true,
     "chat_pipeline_trace": true,
-    "separated_foundation_and_gpu_credentials": true
+    "separated_foundation_and_gpu_credentials": true,
+    "cloud_hosted_student_runtime": true,
+    "student_versioned_cloud_configs": true,
+    "student_candidate_evaluation": true,
+    "student_explicit_promotion": true,
+    "student_explicit_rollback": true,
+    "student_chat_history_context": true,
+    "student_runtime_fallback": true
   },
   "current_brain_behavior": {
-    "model_runtime": "dynamic runtime selected from Model Registry; internal planner is safe fallback; llama_cpp local GGUF runtime supported when configured",
+    "model_runtime": "Model Registry selects the active runtime. cloud_ml_inference is supported for Miyori Student on Cloud.ru ML Inference; internal planner remains fallback.",
     "cycle": [
       "perception",
       "context/world model",
@@ -194,13 +203,29 @@
     },
     "neural_safety": "free conversation may use neural runtime; real actions remain planned/executed through deterministic planner and Action Gateway",
     "model_promotion": "evaluation never auto-promotes; active model promotion still requires explicit approval",
-    "teacher_student_target": "Следующий архитектурный приоритет — реализовать Teacher–Student orchestration: Cloud Teacher участвует только в обучении/критике/оценке, а не подменяет Miyori Student в обычном диалоге.",
+    "teacher_student_target": "Implemented separation: Cloud Teacher provides critique/labels; Miyori Student is a separate ML Inference runtime for normal conversation. Teacher does not replace Student responses.",
     "teacher_student": {
       "student": "Miyori Brain/Student remains the response-producing system. The current built-in planner remains fallback until a dedicated cloud-hosted Miyori Student model endpoint/weights exist.",
       "teacher": "Cloud Teacher uses Cloud.ru Foundation Models only for critique, labeling and teaching signals. It never replaces the already generated Miyori response.",
       "auto_review": "disabled by default because it causes paid API calls",
       "manual_review": "available from chat after a Miyori response",
       "training_acceptance": "teacher feedback is excluded from datasets until explicitly marked accepted_for_training by the user"
+    },
+    "student_runtime": {
+      "role": "Miyori Student is the response-producing personal cloud brain; it is not Cloud Teacher.",
+      "provider": "Cloud.ru Evolution ML Inference",
+      "endpoint": "user-configured *.inference.cloud.ru OpenAI-compatible /v1 endpoint",
+      "context": [
+        "recent conversation history",
+        "relevant Miyori memory",
+        "project/task context"
+      ],
+      "lifecycle": "candidate -> testing/evaluation -> approved -> explicit active -> rollback",
+      "promotion_threshold": 0.75,
+      "automatic_promotion": false,
+      "active_candidate_isolation": "Student endpoint/token/model configs are stored per version so active vN can keep serving while vN+1 is tested",
+      "fallback": "internal planner on unavailable/mismatched Student runtime",
+      "actions": "real actions still go through deterministic planner + Action Gateway"
     }
   },
   "chat": {
@@ -266,6 +291,17 @@
       "role": "GPU training for Miyori Student candidates",
       "automatic_paid_start": false,
       "credentials": "existing Key ID / Key Secret / Workspace ID / x-api-key remain separate from Foundation Models key"
+    },
+    "ml_inference_student": {
+      "role": "cloud-hosted Miyori Student runtime",
+      "endpoint_pattern": "https://<inference>.inference.cloud.ru/v1",
+      "endpoint_restriction": "HTTPS and *.inference.cloud.ru only",
+      "auth": "separate encrypted Student API Token",
+      "openai_compatible": true,
+      "versioned_configs": true,
+      "default_bootstrap_model": "Qwen/Qwen3-8B",
+      "custom_weights_target": "future fine-tuned Miyori weights / LoRA / Model Registry artifact",
+      "automatic_activation": false
     }
   },
   "training_data": {
@@ -291,7 +327,12 @@
       "GET /api/brain/teacher",
       "GET /api/brain/teacher/feedback",
       "POST /api/brain/teacher/review",
-      "POST /api/brain/teacher/feedback/mark"
+      "POST /api/brain/teacher/feedback/mark",
+      "GET /api/brain/student",
+      "POST /api/brain/student/register",
+      "POST /api/brain/student/evaluate",
+      "POST /api/brain/student/promote",
+      "POST /api/brain/student/rollback"
     ],
     "development": [
       "GET /api/brain/development",
@@ -337,7 +378,8 @@
       "GET /api/cloudru/configs",
       "GET /api/cloudru/jobs",
       "POST /api/cloudru/training/submit",
-      "POST /api/cloudru/foundation/test"
+      "POST /api/cloudru/foundation/test",
+      "POST /api/cloudru/student/test"
     ],
     "training": [
       "GET /api/training/datasets",
@@ -356,8 +398,9 @@
       "localhost mutating APIs remain CSRF-sensitive",
       "updater still needs ZIP-slip validation, hashes/signatures, atomic install and rollback API",
       "JSON storage will eventually need migration to SQLite as data grows",
-      "real neural embeddings require an explicitly configured local sentence-transformers model",
-      "real neural generation requires a local GGUF artifact plus llama-cpp-python; no trained Miyori weights exist yet",
+      "real neural embeddings still require a configured embedding backend",
+      "Miyori Student runtime is implemented, but an actual Cloud.ru ML Inference instance/endpoint must still be created and entered by the user",
+      "current Student evaluation is a foundation harness, not yet a large benchmark suite",
       "camera, microphone, TTS and physical mobility adapters are still not implemented"
     ]
   },
@@ -378,66 +421,69 @@
   ],
   "latest_commits": [
     [
-      "7d2ad549d37e0220d3299f78207f9fb36ff9165c",
-      "Release Teacher-Student chat foundation v0.15.0"
+      "b4ae809dc6a312d08b6e14891b5656e5d5202be5",
+      "Release cloud-hosted Miyori Student v0.16.0"
     ],
     [
-      "be0116ac45d3f002c9e6d92533e18d34aeb8b847",
-      "Add Cloud Teacher safety regression tests"
+      "46dede4b8b8ea28e883eb37fadd79ddcbc9cc509",
+      "Show active and candidate Student versions in account"
     ],
     [
-      "84f6033cb1837e15e869ff2de4bb03cbf193732f",
-      "Add explicit Cloud Teacher review workflow in chat"
+      "4b57e7105b9511beb85bff8a0028c5ea141dbd55",
+      "Store versioned Cloud Student inference configurations"
     ],
     [
-      "1b0a14773621a8fc1ed7a43869f1e29f0895ad80",
-      "Integrate Cloud Teacher: server.py"
+      "7e13159ab09d0eecd89143c8403b964efacd7304",
+      "Strengthen Miyori Student evaluation criteria"
     ],
     [
-      "7f5b4c2e73f0782999887d752b6a9dfb177cdd71",
-      "Add Miyori Cloud Teacher gateway"
+      "0c15114b12fce2d6439af5ea36eed34433fcff51",
+      "Test explicit Cloud Student rollback approval"
     ]
   ],
   "recommended_next_steps": [
     {
       "priority": 1,
-      "name": "Cloud-hosted Miyori Student runtime",
+      "name": "ML Inference provisioning and cost guard",
       "details": [
-        "define a separate Student inference endpoint/runtime that is not the Cloud Teacher",
-        "support candidate Student models in Model Registry",
-        "route normal conversation to Miyori Student when available and keep internal planner as fallback",
-        "preserve Action Gateway for all real actions"
+        "integrate Cloud.ru ML Inference management API when exact provisioning schema is finalized",
+        "show estimated GPU/resource cost before creating or keeping an inference running",
+        "prefer min replicas 0/serverless for development where appropriate",
+        "never create a paid inference without explicit confirmation",
+        "show running/waiting/stopped Student state in chat"
       ]
     },
     {
       "priority": 2,
-      "name": "Teacher learning queue",
+      "name": "Train first real Miyori Student candidate",
       "details": [
-        "add a compact chat view for pending teacher feedback",
-        "batch accept/reject teaching signals",
-        "deduplicate and quality-score accepted examples",
-        "build train/validation datasets only from accepted signals and confirmed Miyori experience"
+        "validate accepted Teacher signals and confirmed Miyori experience",
+        "build train/validation split",
+        "select base open-weight model",
+        "run controlled LoRA/fine-tuning on Cloud.ru GPU",
+        "publish trained artifact to Model Registry/ML Inference",
+        "evaluate against active version and explicitly promote or reject"
       ]
     },
     {
       "priority": 3,
-      "name": "Cloud training lifecycle",
+      "name": "Professional streaming chat",
       "details": [
-        "cost estimate and budget ceiling before paid GPU run",
-        "train candidate Miyori Student",
-        "evaluation against active version",
-        "explicit approve -> promote, otherwise reject/rollback",
-        "never auto-promote or auto-start paid training"
+        "support streaming tokens from ML Inference when runtime supports stream=true",
+        "keep pipeline/status indicators compact",
+        "surface Student fallback/recovery without exposing hidden reasoning",
+        "add message-level memory/teacher activity indicators"
       ]
     },
     {
       "priority": 4,
-      "name": "Professional chat evolution",
+      "name": "Memory and embodiment",
       "details": [
-        "streaming responses when Student runtime supports it",
-        "message-level memory/use indicators",
-        "compact learning/teacher activity drawer",
-        "image/screen input as Eyes adapter without bloating the main UI"
+        "connect a real multilingual embedding model for semantic memory",
+        "Eyes: screen/image/camera adapters",
+        "Ears: microphone/STT",
+        "Voice: TTS",
+        "Hands: sandboxed computer/file tools behind Action Gateway"
       ]
     }
   ],
