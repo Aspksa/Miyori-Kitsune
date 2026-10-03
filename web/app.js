@@ -219,3 +219,41 @@ document.getElementById("createPairingButton").addEventListener("click",async()=
   finally{button.disabled=false;}
 });
 loadAccount();
+
+const memoryLabels={projects:"Проекты",work:"Работа",tasks:"Задачи",remember:"Запомнить",preferences:"Предпочтения",people:"Люди",facts:"Важные факты"};
+let memoryState={categories:[],items:[],active_context:{count:0}};
+function memEsc(v){return String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]));}
+function activeMemoryCount(data){return (data.items||[]).filter(item=>(data.categories||[]).find(c=>c.id===item.category)?.enabled).length;}
+function renderMemory(){
+  const chips=document.getElementById("memoryChips");
+  if(chips)chips.innerHTML=memoryState.categories.slice(0,4).map(c=>'<span class="'+(c.enabled?"on":"off")+'">'+memEsc(c.label)+' · '+c.count+'</span>').join("");
+  const status=document.getElementById("memoryContextStatus");
+  if(status)status.textContent=(memoryState.active_context?.count||0)+" записей сейчас доступны Miyori";
+  const cats=document.getElementById("memoryCategoryList");
+  if(cats){
+    cats.innerHTML=memoryState.categories.map(c=>'<label class="memory-category-row"><span><b>'+memEsc(c.label)+'</b><small>'+c.count+' записей</small></span><input type="checkbox" data-memory-toggle="'+c.id+'" '+(c.enabled?"checked":"")+'></label>').join("");
+    cats.querySelectorAll("[data-memory-toggle]").forEach(input=>input.addEventListener("change",async()=>{
+      const d=await api("/api/memory/category",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({category:input.dataset.memoryToggle,enabled:input.checked})});
+      memoryState={...d,active_context:{count:activeMemoryCount(d)}};renderMemory();
+    }));
+  }
+  const items=document.getElementById("memoryItems");
+  if(items)items.innerHTML=memoryState.items.length?memoryState.items.map(item=>'<div class="memory-item"><div><span>'+memEsc(memoryLabels[item.category]||item.category)+'</span><p>'+memEsc(item.text)+'</p></div></div>').join(""):'<p class="empty-state">Память пока пуста.</p>';
+}
+async function loadMemory(){try{memoryState=await api("/api/memory");renderMemory();}catch(e){document.getElementById("memoryContextStatus").textContent=e.message;}}
+function openMemory(cat){document.getElementById("memoryModal").hidden=false;if(cat)document.getElementById("memoryCategory").value=cat;document.getElementById("memoryText").focus();}
+function closeMemory(){document.getElementById("memoryModal").hidden=true;}
+document.getElementById("openMemoryButton").addEventListener("click",()=>openMemory());
+document.getElementById("closeMemoryButton").addEventListener("click",closeMemory);
+document.getElementById("memoryModal").addEventListener("click",e=>{if(e.target.id==="memoryModal")closeMemory();});
+document.querySelectorAll("[data-memory-category]").forEach(b=>b.addEventListener("click",()=>openMemory(b.dataset.memoryCategory)));
+document.getElementById("memoryForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const t=document.getElementById("memoryText");
+  if(!t.value.trim())return;
+  const d=await api("/api/memory/add",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({category:document.getElementById("memoryCategory").value,text:t.value.trim()})});
+  t.value="";
+  memoryState={...d,active_context:{count:activeMemoryCount(d)}};
+  renderMemory();
+});
+loadMemory();
