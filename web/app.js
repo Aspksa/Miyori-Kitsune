@@ -59,28 +59,87 @@ async function checkCore(){
 }
 
 const checkButton=document.getElementById("checkUpdateButton"),applyButton=document.getElementById("applyUpdateButton");
-const latestVersion=document.getElementById("latestVersion"),updateStatus=document.getElementById("updateStatus"),updateMessage=document.getElementById("updateMessage"),updateMiniStatus=document.getElementById("updateMiniStatus"),updateDot=document.getElementById("updateDot");
+const latestVersion=document.getElementById("latestVersion"),updateStatus=document.getElementById("updateStatus"),updateMessage=document.getElementById("updateMessage"),updateMiniStatus=document.getElementById("updateMiniStatus"),updateDot=document.getElementById("updateDot"),updateBadge=document.getElementById("updateBadge");
+let progressTimer=null;
+
+function shortBuild(value){return value&&value!=="unknown"&&value!=="local"?String(value).slice(0,7):String(value||"—");}
+function formatBytes(bytes){const n=Number(bytes||0);if(!n)return "—";const units=["Б","КБ","МБ","ГБ"];let v=n,i=0;while(v>=1024&&i<units.length-1){v/=1024;i++;}return (i? v.toFixed(v>=10?1:2):Math.round(v))+" "+units[i];}
+function setUpdateNotification(count){if(count>0){updateBadge.hidden=false;updateBadge.textContent=String(count);}else{updateBadge.hidden=true;}}
+
 
 async function checkUpdate(){
   checkButton.disabled=true;applyButton.disabled=true;updateStatus.textContent="Проверка…";updateMessage.textContent="Связываемся с GitHub и проверяем стабильную версию.";updateDot.classList.remove("ready");
   try{
     const data=await api("/api/update/check");
     document.getElementById("currentVersion").textContent="v"+data.current;latestVersion.textContent="v"+data.latest;renderComponentVersions(data.components||[]);
-    if(data.available){updateStatus.textContent="Доступно";updateMessage.textContent="Найдена новая версия. Перед установкой будет создана резервная копия.";updateMiniStatus.textContent="Доступно v"+data.latest;updateDot.classList.add("ready");applyButton.disabled=false;}
-    else{updateStatus.textContent="Актуально";updateMessage.textContent="Установлена последняя стабильная версия из GitHub.";updateMiniStatus.textContent="GitHub · актуально";}
+    document.getElementById("currentBuild").textContent="build "+shortBuild(data.current_build);
+    document.getElementById("latestBuild").textContent="build "+shortBuild(data.latest_build);
+    document.getElementById("updateSize").textContent="размер "+formatBytes(data.size);
+    const issues=data.dependency_issues||[];
+    const dep=document.getElementById("dependencyBox");
+    if(data.dependencies_ok){dep.className="dependency-box ok";dep.textContent="Совместимость компонентов проверена: зависимости выполнены.";}
+    else{dep.className="dependency-box error";dep.textContent=issues.map(x=>(componentLabels[x.component]||x.component)+" требует "+(componentLabels[x.dependency]||x.dependency)+" >= "+x.required+" (есть "+x.actual+")").join(" · ");}
+    const changed=(data.components||[]).filter(x=>x.changed).length;
+    setUpdateNotification(changed);
+    if(data.available){updateStatus.textContent="Доступно";updateMessage.textContent=(data.changes||[]).join(" • ")||"Найдена новая версия.";updateMiniStatus.textContent="Доступно v"+data.latest;updateDot.classList.add("ready");applyButton.disabled=!data.dependencies_ok;}
+    else{updateStatus.textContent="Актуально";updateMessage.textContent="Установлена последняя стабильная версия из GitHub.";updateMiniStatus.textContent="GitHub · актуально";setUpdateNotification(0);}
   }catch(error){updateStatus.textContent="Ошибка";updateMessage.textContent=error.message;updateMiniStatus.textContent="GitHub · ошибка";}
   finally{checkButton.disabled=false;}
 }
 
+async function pollProgress(){
+  try{
+    const data=await api("/api/update/progress");
+    const box=document.getElementById("progressBox");box.hidden=false;
+    document.getElementById("progressPercent").textContent=(data.progress||0)+"%";
+    document.getElementById("progressBar").style.width=(data.progress||0)+"%";
+    document.getElementById("progressStage").textContent=data.message||data.stage;
+    document.getElementById("progressBytes").textContent=formatBytes(data.downloaded)+" / "+formatBytes(data.total);
+    if(data.running)return;
+    clearInterval(progressTimer);progressTimer=null;checkButton.disabled=false;
+    if(data.error){updateStatus.textContent="Ошибка";updateMessage.textContent=data.error;await loadHistory();return;}
+    if(data.result&&data.result.updated){updateStatus.textContent="Установлено";updateMessage.textContent="Обновление установлено. Перезапустите MiyoriKitsune.bat.";updateMiniStatus.textContent="Нужен перезапуск";setUpdateNotification(0);await loadHistory();}
+  }catch(error){clearInterval(progressTimer);progressTimer=null;checkButton.disabled=false;updateMessage.textContent=error.message;}
+}
+
 async function applyUpdate(){
   if(!confirm("Установить новую версию Miyori Kitsune из GitHub? Перед обновлением будет создана резервная копия."))return;
-  checkButton.disabled=true;applyButton.disabled=true;updateStatus.textContent="Установка…";updateMessage.textContent="Скачивание и замена файлов. Не закрывайте окно ядра.";
-  try{
-    const data=await api("/api/update/apply",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
-    if(data.updated){latestVersion.textContent="v"+data.latest;updateStatus.textContent="Установлено";updateMessage.textContent="Обновление установлено. Закройте окно ядра и снова запустите MiyoriKitsune.bat.";updateMiniStatus.textContent="Нужен перезапуск";updateDot.classList.add("ready");}
-    else{updateStatus.textContent="Актуально";updateMessage.textContent="Обновление не требуется.";checkButton.disabled=false;}
-  }catch(error){updateStatus.textContent="Ошибка";updateMessage.textContent=error.message;checkButton.disabled=false;}
+  checkButton.disabled=true;applyButton.disabled=true;updateStatus.textContent="Установка…";updateMessage.textContent="Подготовка обновления.";
+  try{await api("/api/update/apply",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});document.getElementById("progressBox").hidden=false;progressTimer=setInterval(pollProgress,500);await pollProgress();}
+  catch(error){updateStatus.textContent="Ошибка";updateMessage.textContent=error.message;checkButton.disabled=false;}
 }
+
+async function loadHistory(){
+  try{
+    const data=await api("/api/update/history");
+    const root=document.getElementById("updateHistory");
+    if(!data.items.length){root.innerHTML='<p class="empty-state">История пока пуста.</p>';return;}
+    root.innerHTML=data.items.map(item=>'<div class="history-row"><div><b>v'+item.version+' · '+shortBuild(item.build)+'</b><small>'+item.date+' · '+formatBytes(item.size)+'</small></div><span class="'+(item.result==="success"?"history-ok":"history-error")+'">'+(item.result==="success"?"Успешно":"Ошибка")+'</span><p>'+((item.modules||[]).map(x=>componentLabels[x]||x).join(", ")||"Без списка модулей")+'</p></div>').join("");
+  }catch{}
+}
+
+async function checkMobile(){
+  const button=document.getElementById("checkMobileButton"),download=document.getElementById("downloadMobileButton");
+  button.disabled=true;download.disabled=true;
+  try{
+    const data=await api("/api/mobile/update/check");
+    document.getElementById("mobileCurrent").textContent="v"+data.current;
+    document.getElementById("mobileLatest").textContent="v"+data.latest;
+    document.getElementById("mobileNotes").textContent=data.notes||"Мобильный пакет опубликован.";
+    document.getElementById("mobileCompatibility").textContent=data.compatible?"Совместимо с текущим Core. Требуется Core >= "+data.min_core:"Требуется обновить Core до версии "+data.min_core+" или выше.";
+    download.disabled=!(data.available&&data.compatible&&data.download_ready);
+  }catch(error){document.getElementById("mobileNotes").textContent=error.message;}
+  finally{button.disabled=false;}
+}
+async function downloadMobile(){
+  const button=document.getElementById("downloadMobileButton");button.disabled=true;
+  try{const data=await api("/api/mobile/update/download",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});document.getElementById("mobileNotes").textContent="Пакет скачан: "+data.path;}
+  catch(error){document.getElementById("mobileNotes").textContent=error.message;}
+}
+
 checkButton.addEventListener("click",checkUpdate);applyButton.addEventListener("click",applyUpdate);
-checkCore();setInterval(checkCore,15000);
+document.getElementById("refreshHistoryButton").addEventListener("click",loadHistory);
+document.getElementById("checkMobileButton").addEventListener("click",checkMobile);
+document.getElementById("downloadMobileButton").addEventListener("click",downloadMobile);
+checkCore();loadHistory();checkUpdate();checkMobile();setInterval(checkCore,15000);
 const initial=location.hash.replace("#","");if(pages[initial])openPage(initial);
