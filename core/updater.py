@@ -14,7 +14,7 @@ BRANCH = "main"
 ROOT = Path(__file__).resolve().parent.parent
 VERSION_FILE = ROOT / "version.json"
 BACKUP_DIR = ROOT / "backups"
-PRESERVE_TOP_LEVEL = {".git", "data", "logs"}
+PRESERVE_TOP_LEVEL = {".git", "data", "logs", "backups"}
 PRESERVE_FILES = {"config/local.json"}
 
 RAW_VERSION_URL = f"https://raw.githubusercontent.com/{REPO}/{BRANCH}/version.json"
