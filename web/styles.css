@@ -69,3 +69,5 @@
 @media(max-width:620px){.chat-history-button{padding:0 8px}.chat-history-panel{top:52px;right:8px;width:calc(100% - 16px);max-height:60vh}}
 
 .chat-trace{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;padding-top:7px;border-top:1px solid var(--line)}.chat-trace span{padding:3px 6px;border:1px solid #28313d;border-radius:999px;background:#0b1016;color:var(--muted);font-size:7px;letter-spacing:0;text-transform:none}.brain-status-item b.ok{color:var(--accent-soft)}
+
+.teacher-review-button{padding:3px 7px;border:1px solid #3b472f;border-radius:999px;background:#121a12;color:var(--accent-soft);font-size:7px;cursor:pointer}.teacher-review-button:hover{border-color:#53643f;color:#fff}.teacher-review-button:disabled{opacity:.55;cursor:default}.teacher-feedback-actions{display:flex;gap:7px;margin-top:10px}.teacher-feedback-actions button{padding:6px 10px;font-size:8px}
