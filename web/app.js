@@ -524,8 +524,8 @@ function renderCloudru(cloudru={}){
   document.getElementById("cloudruTeacherAutoReview").checked=!!cloudru.teacher_auto_review;
   document.getElementById("cloudruKeySecret").placeholder=cloudru.secret_saved?"Секрет сохранён — оставьте пустым, чтобы не менять":"Введите Key Secret";
   document.getElementById("cloudruApiKey").placeholder=cloudru.api_key_saved?"x-api-key сохранён — оставьте пустым, чтобы не менять":"Введите x-api-key";
-  document.getElementById("cloudruFoundationApiKey").placeholder=cloudru.foundation_api_key_saved?"Foundation API Key сохранён — оставьте пустым, чтобы не менять":"Введите Foundation Models API Key";
-  document.getElementById("cloudruStudentApiKey").placeholder=cloudru.student_api_key_saved?"Student API Token сохранён — оставьте пустым, чтобы не менять":"Введите ML Inference API Token";
+  document.getElementById("cloudruFoundationApiKey").placeholder=cloudru.foundation_api_key_saved?"Ключ сохранён — оставь пустым, чтобы не менять":"Вставь ключ учителя";
+  document.getElementById("cloudruStudentApiKey").placeholder=cloudru.student_api_key_saved?"Ключ сохранён — оставь пустым, чтобы не менять":"Вставь ключ доступа";
   const state=document.getElementById("cloudruConnectionState");
   const readyCount=[teacherConfigured,studentConfigured].filter(Boolean).length;
   state.textContent=readyCount===2?"Готово":(readyCount===1?"Частично подключено":"Не подключено");
