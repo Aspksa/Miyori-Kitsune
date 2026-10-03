@@ -5,6 +5,8 @@ import time
 import uuid
 from pathlib import Path
 
+from safety_kernel import allow_self_development_transition, classify_change
+
 ROOT = Path(__file__).resolve().parent.parent
 DEV_DIR = ROOT / "data" / "brain" / "self-development"
 PROPOSALS_FILE = DEV_DIR / "proposals.json"
@@ -25,12 +27,14 @@ def _write(rows):
     tmp.replace(PROPOSALS_FILE)
 
 def propose(title: str, rationale: str, target: str, risk: str = "medium"):
+    policy = classify_change(target)
     item = {
         "id": "proposal_" + uuid.uuid4().hex[:12],
         "title": str(title)[:200],
         "rationale": str(rationale)[:4000],
         "target": str(target)[:300],
         "risk": risk if risk in {"low", "medium", "high"} else "medium",
+        "policy": policy,
         "state": "proposed",
         "created_at": int(time.time()),
         "updated_at": int(time.time()),
@@ -42,13 +46,15 @@ def propose(title: str, rationale: str, target: str, risk: str = "medium"):
     _write(rows[-1000:])
     return item
 
-def transition(proposal_id: str, state: str, note: str | None = None):
+def transition(proposal_id: str, state: str, note: str | None = None, approved: bool = False):
     if state not in ALLOWED_STATES:
         raise ValueError("Invalid self-development state.")
     rows = _read()
     item = next((x for x in rows if x.get("id") == proposal_id), None)
     if not item:
         raise KeyError("Proposal not found.")
+    if not allow_self_development_transition(item.get("target", ""), state, approved=approved):
+        raise PermissionError("Safety Kernel requires explicit approval for this transition.")
     item["state"] = state
     item["updated_at"] = int(time.time())
     if note:
