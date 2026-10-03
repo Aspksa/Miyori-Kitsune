@@ -484,7 +484,7 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/brain/student/promote":
                 promoted = student_promote_current(
                     approved=bool(payload.get("approved", False)),
-                    min_score=float(payload.get("min_score", 0.66) or 0.66),
+                    min_score=float(payload.get("min_score", 0.75) or 0.75),
                 )
                 self._json({"ok": True, "student": promoted, "status": student_status()})
                 return
