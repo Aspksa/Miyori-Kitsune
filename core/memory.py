@@ -7,6 +7,9 @@ import time
 import uuid
 from pathlib import Path
 
+from embeddings import status as embedding_status
+from semantic_memory import search as semantic_search, status as semantic_status
+
 ROOT = Path(__file__).resolve().parent.parent
 MEMORY_FILE = ROOT / "data" / "memory.json"
 
@@ -170,14 +173,27 @@ def set_category_enabled(category, enabled):
 def retrieve_relevant(query: str, project_id=None, task_id=None, limit: int = 24):
     state = _read()
     now = int(time.time())
-    rows = []
+    eligible = []
     for item in state["items"]:
         if not state["enabled"].get(item.get("category"), False):
             continue
         if not _scope_matches(item, project_id=project_id, task_id=task_id):
             continue
+        eligible.append(item)
+
+    semantic_rows = semantic_search(str(query), eligible, limit=max(50, int(limit) * 4)) if eligible else []
+    semantic_scores = {row["id"]: max(0.0, float(row.get("semantic_score", 0))) for row in semantic_rows}
+    neural_embeddings = bool(embedding_status().get("neural"))
+
+    rows = []
+    for item in eligible:
         row = dict(item)
-        row["relevance"] = _relevance_score(item, query, now)
+        lexical_prior = _relevance_score(item, query, now)
+        semantic = semantic_scores.get(str(item.get("id")), 0.0)
+        semantic_weight = 0.62 if neural_embeddings else 0.36
+        row["lexical_relevance"] = lexical_prior
+        row["semantic_relevance"] = round(semantic, 6)
+        row["relevance"] = round((semantic * semantic_weight) + (lexical_prior * (1.0 - semantic_weight)), 6)
         rows.append(row)
 
     rows.sort(
@@ -188,14 +204,35 @@ def retrieve_relevant(query: str, project_id=None, task_id=None, limit: int = 24
         ),
         reverse=True,
     )
-    return rows[:max(1, min(int(limit), 100))]
+    selected = rows[:max(1, min(int(limit), 100))]
+    selected_ids = {str(item.get("id")) for item in selected}
+    if selected_ids:
+        touched = False
+        for item in state["items"]:
+            if str(item.get("id")) in selected_ids:
+                item["access_count"] = int(item.get("access_count", 0) or 0) + 1
+                item["last_accessed_at"] = now
+                touched = True
+        if touched:
+            _write(state)
+    return selected
+
+
+def memory_engine_status() -> dict:
+    embeddings = embedding_status()
+    vectors = semantic_status()
+    return {
+        "retrieval": "hybrid-semantic" if embeddings.get("neural") else "hybrid-vector",
+        "embeddings": embeddings,
+        "vector_index": vectors,
+    }
 
 
 def active_context(project_id=None, task_id=None, query: str | None = None, limit: int = 50):
     state = _read()
     if query and str(query).strip():
         items = retrieve_relevant(str(query), project_id=project_id, task_id=task_id, limit=limit)
-        retrieval = "relevance"
+        retrieval = memory_engine_status()["retrieval"]
     else:
         items = [
             item for item in state["items"]
