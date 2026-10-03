@@ -1,20 +1,20 @@
 {
-  "version": "0.9.0",
+  "version": "0.10.0",
   "channel": "stable",
   "repository": "Aspksa/Miyori-Kitsune",
   "components": {
-    "core": "0.9.0",
-    "interface": "0.7.0",
+    "core": "0.10.0",
+    "interface": "0.8.0",
     "updater": "0.4.0",
     "chat": "0.6.0",
     "workspace": "0.4.0",
     "home": "0.3.0",
     "settings": "0.3.0",
-    "account": "0.4.0",
+    "account": "0.5.0",
     "mobile": "0.2.0",
     "memory": "0.2.0",
     "assistant": "0.2.0",
-    "brain": "0.2.0",
+    "brain": "0.3.0",
     "identity": "0.1.0",
     "world_model": "0.1.0",
     "reflection": "0.1.0",
@@ -22,7 +22,9 @@
     "skills": "0.1.0",
     "self_development": "0.1.0",
     "safety_kernel": "0.1.0",
-    "sleep_engine": "0.1.0"
+    "sleep_engine": "0.1.0",
+    "cloudru": "0.1.0",
+    "training_data": "0.1.0"
   },
   "dependencies": {
     "chat": {
@@ -41,7 +43,8 @@
       "core": "0.4.0"
     },
     "account": {
-      "core": "0.5.0"
+      "core": "0.10.0",
+      "cloudru": "0.1.0"
     },
     "mobile": {
       "core": "0.4.0"
@@ -54,7 +57,7 @@
       "memory": "0.2.0"
     },
     "brain": {
-      "core": "0.9.0",
+      "core": "0.10.0",
       "assistant": "0.2.0",
       "memory": "0.2.0",
       "workspace": "0.4.0",
@@ -63,7 +66,9 @@
       "reflection": "0.1.0",
       "learning": "0.1.0",
       "skills": "0.1.0",
-      "safety_kernel": "0.1.0"
+      "safety_kernel": "0.1.0",
+      "cloudru": "0.1.0",
+      "training_data": "0.1.0"
     },
     "self_development": {
       "core": "0.9.0",
@@ -75,6 +80,15 @@
       "learning": "0.1.0",
       "skills": "0.1.0",
       "world_model": "0.1.0"
+    },
+    "cloudru": {
+      "core": "0.10.0"
+    },
+    "training_data": {
+      "core": "0.10.0",
+      "brain": "0.3.0",
+      "learning": "0.1.0",
+      "reflection": "0.1.0"
     }
   },
   "mobile_client": {
@@ -85,12 +99,12 @@
     "notes": "Отдельный пакет мобильного клиента будет публиковаться через GitHub Releases."
   },
   "changes": [
-    "Добавлена модульная Miyori Brain Architecture без изменений интерфейса.",
-    "Добавлены Identity, World Model, Reflection Engine, Learning Engine и Skills Registry.",
-    "Добавлен Cognitive Loop: perception → context → plan → action → outcome → reflection → learning.",
-    "Добавлен Sleep/Consolidation Engine с безопасным фоновым циклом.",
-    "Добавлен Self-Development Engine с предложениями улучшений вместо прямой перезаписи ядра.",
-    "Добавлен Safety Kernel: критические изменения требуют явного подтверждения, тестов и резервной копии.",
-    "Добавлены служебные API состояния Brain Architecture, сна и self-development proposals."
+    "Добавлен Cloud.ru Training Connector для развития собственной Miyori Kitsune.",
+    "Учётные данные Cloud.ru вводятся в Личном кабинете; секреты после сохранения не возвращаются в интерфейс.",
+    "На Windows Key Secret и x-api-key защищаются Windows DPAPI.",
+    "Добавлена проверка подключения к Distributed Train и получение training-конфигураций.",
+    "Добавлен локальный Training Dataset Builder из подтверждённого обучения, рефлексий и рабочих сессий Miyori.",
+    "Добавлен backend API запуска Cloud.ru training jobs, но платное обучение не запускается автоматически.",
+    "Состояние Cloud.ru и локальных датасетов включено во внутреннее состояние Brain Architecture."
   ]
 }
