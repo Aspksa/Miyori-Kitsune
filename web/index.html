@@ -3,34 +3,44 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0b0c10">
+  <meta name="theme-color" content="#090b10">
   <title>Miyori Kitsune</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <div class="app-shell">
+    <div class="mobile-scrim" id="mobileScrim"></div>
     <aside class="sidebar" id="sidebar">
       <div class="brand">
         <div class="brand-mark">狐</div>
-        <div><strong>Miyori Kitsune</strong><span>Local AI workspace</span></div>
+        <div class="brand-copy"><strong>Miyori Kitsune</strong><span>Personal AI System</span></div>
+        <span class="brand-version" id="brandVersion">v0.2</span>
       </div>
 
+      <button class="profile-card nav-item" data-page="account">
+        <span class="profile-avatar">AK</span>
+        <span class="profile-copy"><b>Личный кабинет</b><small>Профиль и синхронизация</small></span>
+        <span class="chevron">›</span>
+      </button>
+
+      <div class="nav-label">Пространства</div>
       <nav class="nav" aria-label="Основное меню">
-        <button class="nav-item active" data-page="chat"><span>◈</span><b>Чат с Miyori Kitsune</b></button>
-        <button class="nav-item" data-page="workspace"><span>▦</span><b>Рабочее пространство</b></button>
-        <button class="nav-item" data-page="home"><span>⌂</span><b>Домашнее пространство</b></button>
-        <button class="nav-item" data-page="settings"><span>⚙</span><b>Настройки</b></button>
+        <button class="nav-item active" data-page="chat"><span class="nav-icon">✦</span><b>Чат с Miyori Kitsune</b><span class="nav-hint">AI</span></button>
+        <button class="nav-item" data-page="workspace"><span class="nav-icon">▦</span><b>Рабочее пространство</b></button>
+        <button class="nav-item" data-page="home"><span class="nav-icon">⌂</span><b>Домашнее пространство</b></button>
+        <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><b>Настройки</b></button>
       </nav>
 
       <div class="sidebar-spacer"></div>
 
-      <div class="updates-zone">
-        <button class="nav-item update-item" data-page="updates"><span>↻</span><b>Обновление проекта</b><i class="status-dot"></i></button>
-      </div>
-
-      <div class="secondary-zone">
-        <button class="nav-item" data-page="account"><span>◎</span><b>Личный кабинет</b></button>
-        <button class="nav-item" data-page="mobile"><span>▣</span><b>Мобильное приложение</b></button>
+      <div class="system-zone">
+        <div class="nav-label">Система</div>
+        <button class="update-card nav-item" data-page="updates">
+          <span class="nav-icon">↻</span>
+          <span class="profile-copy"><b>Обновление проекта</b><small id="updateMiniStatus">GitHub · stable</small></span>
+          <i class="status-dot" id="updateDot"></i>
+        </button>
+        <button class="nav-item" data-page="mobile"><span class="nav-icon">▣</span><b>Мобильное приложение</b><span class="nav-hint">Soon</span></button>
       </div>
 
       <div class="core-state">
@@ -41,35 +51,47 @@
 
     <main class="main">
       <header class="topbar">
-        <button class="menu-button" id="menuButton" aria-label="Меню">☰</button>
-        <div><p class="eyebrow">MIYORI / CORE</p><h1 id="pageTitle">Чат с Miyori Kitsune</h1></div>
-        <div class="top-actions"><span class="portable-badge">PORTABLE</span><button class="avatar">AK</button></div>
+        <div class="topbar-left">
+          <button class="menu-button" id="menuButton" aria-label="Открыть меню">☰</button>
+          <div><p class="eyebrow">MIYORI / CORE</p><h1 id="pageTitle">Чат с Miyori Kitsune</h1></div>
+        </div>
+        <div class="top-actions"><span class="portable-badge"><i></i> PORTABLE</span><button class="top-profile nav-item" data-page="account">AK</button></div>
       </header>
 
       <section class="page active" id="page-chat">
-        <div class="hero">
-          <p class="eyebrow">Локальное ядро готово</p>
-          <h2>Чем займёмся сегодня?</h2>
-          <p>Единая точка входа для чата, проектов, домашней среды и будущих модулей Miyori Kitsune.</p>
-        </div>
-        <div class="chat-panel">
-          <div class="message miyori">
-            <div class="message-icon">狐</div>
-            <div><b>Miyori Kitsune</b><p>Ядро запущено локально. Интерфейс готов к подключению модели, памяти, инструментов и рабочих пространств.</p></div>
+        <div class="chat-layout">
+          <div class="hero">
+            <div class="hero-badge">✦ Локальное ядро активно</div>
+            <h2>Ваше пространство<br><span>для идей и работы.</span></h2>
+            <p>Miyori Kitsune объединяет разговор, проекты и персональную среду в одном локальном интерфейсе.</p>
+            <div class="quick-actions">
+              <button type="button" data-prompt="Помоги спланировать новый проект">Новый проект <span>↗</span></button>
+              <button type="button" data-prompt="Помоги разобрать мои задачи">Разобрать задачи <span>↗</span></button>
+              <button type="button" data-page="workspace">Открыть пространство <span>↗</span></button>
+            </div>
           </div>
-          <form class="composer" id="composer">
-            <textarea id="prompt" rows="1" placeholder="Напишите Miyori Kitsune…"></textarea>
-            <button type="submit" aria-label="Отправить">↑</button>
-          </form>
+          <div class="chat-panel">
+            <div class="chat-header"><div><span class="live-dot"></span><b>Miyori Kitsune</b></div><small>Локальная сессия</small></div>
+            <div class="message miyori"><div class="message-icon">狐</div><div><b>Miyori Kitsune</b><p>Ядро работает локально. Следующим модулем можно подключить AI-модель, память и инструменты без изменения общей оболочки.</p></div></div>
+            <form class="composer" id="composer">
+              <textarea id="prompt" rows="1" placeholder="Напишите Miyori Kitsune…"></textarea>
+              <div class="composer-footer"><span>Enter — отправить</span><button type="submit">↑</button></div>
+            </form>
+          </div>
         </div>
       </section>
 
-      <section class="page" id="page-workspace"><div class="section-card"><span class="section-icon">▦</span><h2>Рабочее пространство</h2><p>Проекты, документы, задачи, агенты и рабочие инструменты будут собраны здесь.</p><button class="primary">Создать рабочее пространство</button></div></section>
-      <section class="page" id="page-home"><div class="section-card"><span class="section-icon">⌂</span><h2>Домашнее пространство</h2><p>Личная локальная среда Miyori: заметки, автоматизация дома и персональные сценарии.</p><button class="primary">Настроить пространство</button></div></section>
-      <section class="page" id="page-settings"><div class="section-card"><span class="section-icon">⚙</span><h2>Настройки</h2><p>Конфигурация ядра, моделей, интерфейса, приватности и локального хранения.</p><div class="setting-row"><span><b>Портативный режим</b><small>Все данные хранятся относительно папки проекта</small></span><em>Включён</em></div></div></section>
-      <section class="page" id="page-updates"><div class="section-card"><span class="section-icon">↻</span><h2>Обновление проекта</h2><p>Отдельный центр обновлений ядра, интерфейса и модулей. Автообновление будет подключено на следующем этапе.</p><button class="primary">Проверить обновления</button></div></section>
-      <section class="page" id="page-account"><div class="section-card"><span class="section-icon">◎</span><h2>Личный кабинет</h2><p>Профиль, локальная идентичность, синхронизация и будущие подключения аккаунтов.</p><button class="primary">Открыть профиль</button></div></section>
-      <section class="page" id="page-mobile"><div class="section-card"><span class="section-icon">▣</span><h2>Мобильное приложение</h2><p>Связка настольного ядра Miyori Kitsune с мобильным клиентом через безопасное сопряжение.</p><button class="primary">Подготовить сопряжение</button></div></section>
+      <section class="page" id="page-workspace"><div class="page-heading"><p class="eyebrow">WORKSPACE</p><h2>Рабочее пространство</h2><p>Проекты, документы, задачи и инструменты в единой рабочей среде.</p></div><div class="dashboard-grid"><article class="feature-card large"><span class="feature-icon">＋</span><h3>Новый проект</h3><p>Создайте отдельное пространство для задачи, команды или идеи.</p><button class="primary">Создать проект</button></article><article class="feature-card"><span class="feature-icon">▤</span><h3>Документы</h3><p>Центр рабочих материалов.</p></article><article class="feature-card"><span class="feature-icon">✓</span><h3>Задачи</h3><p>Планы и контроль выполнения.</p></article></div></section>
+
+      <section class="page" id="page-home"><div class="page-heading"><p class="eyebrow">HOME</p><h2>Домашнее пространство</h2><p>Персональные сценарии, заметки и будущая домашняя автоматизация.</p></div><div class="dashboard-grid"><article class="feature-card large"><span class="feature-icon">⌂</span><h3>Мой дом</h3><p>Локальная персональная среда Miyori Kitsune.</p><button class="primary">Настроить пространство</button></article><article class="feature-card"><span class="feature-icon">◇</span><h3>Заметки</h3><p>Быстрые личные записи.</p></article><article class="feature-card"><span class="feature-icon">⌁</span><h3>Сценарии</h3><p>Автоматизация повседневных действий.</p></article></div></section>
+
+      <section class="page" id="page-settings"><div class="page-heading"><p class="eyebrow">SYSTEM</p><h2>Настройки</h2><p>Управление ядром, интерфейсом, приватностью и локальным хранением.</p></div><div class="settings-card"><div class="setting-row"><span><b>Портативный режим</b><small>Все рабочие данные остаются рядом с проектом</small></span><em>Включён</em></div><div class="setting-row"><span><b>Локальный сервер</b><small>Доступен только с этого компьютера через 127.0.0.1</small></span><em>Защищён</em></div><div class="setting-row"><span><b>Канал обновлений</b><small>Основная ветка GitHub</small></span><em>Stable</em></div></div></section>
+
+      <section class="page" id="page-updates"><div class="page-heading"><p class="eyebrow">GITHUB UPDATE</p><h2>Обновление проекта</h2><p>Проверка и установка актуальной версии напрямую из официального репозитория Miyori Kitsune.</p></div><div class="update-dashboard"><article class="update-main"><div class="repo-line"><span class="feature-icon">↻</span><div><small>Источник обновлений</small><b>Aspksa/Miyori-Kitsune</b></div><span class="stable-pill">STABLE</span></div><div class="version-grid"><div><small>Установлено</small><strong id="currentVersion">—</strong></div><div><small>Доступно</small><strong id="latestVersion">—</strong></div><div><small>Статус</small><strong id="updateStatus">Не проверено</strong></div></div><div class="update-actions"><button class="secondary" id="checkUpdateButton">Проверить обновления</button><button class="primary" id="applyUpdateButton" disabled>Установить обновление</button></div><p class="update-note" id="updateMessage">Пользовательские данные, логи и локальные настройки при обновлении не удаляются.</p></article><aside class="safety-card"><span>✓</span><div><b>Безопасное обновление</b><p>Перед заменой файлов Miyori создаёт локальную резервную копию. После установки потребуется перезапуск.</p></div></aside></div></section>
+
+      <section class="page" id="page-account"><div class="page-heading"><p class="eyebrow">PROFILE</p><h2>Личный кабинет</h2><p>Персональный профиль и будущая синхронизация устройств.</p></div><div class="profile-page-card"><div class="profile-large-avatar">AK</div><div><h3>Aspksa</h3><p>Локальный профиль Miyori Kitsune</p><div class="profile-tags"><span>Owner</span><span>Portable</span><span>Local-first</span></div></div></div></section>
+
+      <section class="page" id="page-mobile"><div class="page-heading"><p class="eyebrow">MOBILE</p><h2>Мобильное приложение</h2><p>Будущее безопасное сопряжение телефона с локальным ядром Miyori Kitsune.</p></div><div class="feature-card large"><span class="feature-icon">▣</span><h3>Мобильный клиент</h3><p>Интерфейс уже адаптивный и подготовлен как основа для мобильного приложения.</p><button class="primary">Подготовить сопряжение</button></div></section>
     </main>
   </div>
   <script src="/app.js"></script>

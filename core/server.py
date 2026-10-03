@@ -12,8 +12,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from updater import UpdateError, apply_update, check_update, local_version
+
 APP_NAME = "Miyori Kitsune"
-APP_VERSION = "0.1.0"
+APP_VERSION = local_version()
 HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 
@@ -60,6 +62,18 @@ class MiyoriHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _read_json_body(self) -> dict:
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        if length <= 0:
+            return {}
+        try:
+            return json.loads(self.rfile.read(length).decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return {}
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
 
@@ -78,8 +92,16 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             self._json({
                 "app": APP_NAME,
                 "version": APP_VERSION,
-                "menu": ["chat", "workspace", "home", "settings", "updates", "account", "mobile"],
+                "repository": "Aspksa/Miyori-Kitsune",
+                "menu": ["account", "chat", "workspace", "home", "settings", "updates", "mobile"],
             })
+            return
+
+        if parsed.path == "/api/update/check":
+            try:
+                self._json(check_update())
+            except UpdateError as exc:
+                self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_GATEWAY)
             return
 
         requested = parsed.path.lstrip("/") or "index.html"
@@ -109,8 +131,26 @@ class MiyoriHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
         self.send_header("Cache-Control", "no-cache")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(content)
+
+    def do_POST(self) -> None:
+        parsed = urlparse(self.path)
+
+        if parsed.path == "/api/update/apply":
+            self._read_json_body()
+            try:
+                self._json(apply_update())
+            except UpdateError as exc:
+                log.warning("Update failed: %s", exc)
+                self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_GATEWAY)
+            except Exception:
+                log.exception("Unexpected updater failure")
+                self._json({"ok": False, "error": "Внутренняя ошибка обновления."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        self._json({"ok": False, "error": "Unknown endpoint"}, HTTPStatus.NOT_FOUND)
 
     def log_message(self, fmt: str, *args) -> None:
         log.info("%s - %s", self.address_string(), fmt % args)
