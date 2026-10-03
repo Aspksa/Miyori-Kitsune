@@ -87,22 +87,40 @@
           </section>
 
           <section class="assistant-chat">
-            <div class="chat-header">
-              <div><span class="live-dot"></span><div><b>Чат с Miyori</b><small>Личная сессия</small></div></div>
-              <span class="assistant-state">LOCAL</span>
+            <div class="chat-header chat-header-pro">
+              <div class="chat-identity"><span class="live-dot"></span><div><b>Чат с Miyori</b><small id="chatSessionLabel">Личная сессия · готова</small></div></div>
+              <div class="chat-header-actions"><span class="assistant-state" id="brainRuntimeState">LOCAL</span><button type="button" class="chat-icon-button" id="refreshBrainStatusButton" title="Обновить состояние">↻</button></div>
             </div>
+
+            <div class="brain-status-strip" id="brainStatusStrip">
+              <div class="brain-status-item"><span>МОЗГ</span><b id="brainStatusVersion">Загрузка…</b></div>
+              <div class="brain-status-item"><span>МИР</span><b id="brainWorldStatus">—</b></div>
+              <div class="brain-status-item"><span>НАВЫКИ</span><b id="brainSkillsStatus">—</b></div>
+              <div class="brain-status-item"><span>ОБУЧЕНИЕ</span><b id="brainLearningStatus">—</b></div>
+              <div class="brain-status-item"><span>CLOUD.RU</span><b id="brainCloudStatus">—</b></div>
+            </div>
+
             <div class="context-strip">
-              <span>Использую:</span>
+              <span>Контекст:</span>
               <div id="activeContextChips"><i>Общий контекст</i></div>
-              <button type="button" id="refreshContextButton">↻</button>
+              <button type="button" id="refreshContextButton" title="Обновить контекст">↻</button>
             </div>
-            <div class="message miyori">
-              <div class="message-icon">狐</div>
-              <div><b>Miyori Kitsune</b><p>Я рядом. Здесь можно разговаривать со мной, разбирать задачи, планировать дела и постепенно подключать память, инструменты и рабочие пространства.</p></div>
+
+            <div class="chat-feed" id="chatFeed">
+              <div class="message miyori">
+                <div class="message-icon">狐</div>
+                <div class="message-body"><div class="message-meta"><b>Miyori Kitsune</b><span>система</span></div><p>Я готова. Можешь спрашивать о моём состоянии, проектах, задачах, памяти и развитии или сразу дать мне задачу.</p></div>
+              </div>
             </div>
-            <form class="composer" id="composer">
-              <textarea id="prompt" rows="1" placeholder="Спросите Miyori или дайте задачу…"></textarea>
-              <div class="composer-footer"><span>Enter — отправить · Shift+Enter — новая строка</span><button type="submit">↑</button></div>
+
+            <div class="thinking-card" id="thinkingCard" hidden>
+              <div class="thinking-orb"><i></i><i></i><i></i></div>
+              <div><b id="thinkingTitle">Miyori думает…</b><small id="thinkingDetail">Собираю контекст и проверяю внутреннее состояние</small></div>
+            </div>
+
+            <form class="composer composer-pro" id="composer">
+              <textarea id="prompt" rows="1" placeholder="Напиши Miyori сообщение или команду…"></textarea>
+              <div class="composer-footer"><div class="composer-hints"><span>Enter — отправить</span><span>Shift+Enter — новая строка</span><span>/status — состояние</span></div><button type="submit" id="sendMessageButton" aria-label="Отправить">↑</button></div>
             </form>
           </section>
         </div>
