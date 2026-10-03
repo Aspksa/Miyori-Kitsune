@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from cloudru import student_status as cloud_student_status
-from model_registry import list_models, register_model, transition
+from model_registry import list_models, register_model, rollback_active, summary as model_registry_summary, transition
 
 
 def model_id_for(version: str) -> str:
@@ -109,15 +109,24 @@ def promote_current(approved: bool = False, min_score: float = 0.75) -> dict:
     return item
 
 
+def rollback_current(approved: bool = False) -> dict:
+    if not approved:
+        raise PermissionError("Rollback Miyori Student требует явного подтверждения.")
+    return rollback_active(approved=True)
+
+
 def status() -> dict:
     cloud = cloud_student_status()
     item = current_model()
+    registry = model_registry_summary()
     return {
         **cloud,
         "registry_model": item,
         "registry_model_id": item.get("id") if item else model_id_for(cloud.get("version", "0.1.0")),
         "stage": item.get("stage") if item else "unregistered",
         "evaluation_score": (item.get("metrics") or {}).get("evaluation_score") if item else None,
+        "rollback_available": bool(registry.get("rollback_available")),
+        "active_model_id": (registry.get("active") or {}).get("id"),
         "policy": {
             "teacher_is_separate": True,
             "activation_requires_explicit_approval": True,
