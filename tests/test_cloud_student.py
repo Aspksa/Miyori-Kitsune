@@ -21,7 +21,7 @@ class CloudStudentTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         model_registry.REGISTRY_FILE = Path(self.temp.name) / "models" / "registry.json"
         self.old_student_status = student_gateway.cloud_student_status
-        self.old_runtime_status = neural_runtime.cloud_student_status
+        self.old_runtime_status = neural_runtime.student_version_status
         self.cloud = {
             "configured": True,
             "enabled": True,
@@ -33,11 +33,11 @@ class CloudStudentTests(unittest.TestCase):
             "role": "miyori-student",
         }
         student_gateway.cloud_student_status = lambda: dict(self.cloud)
-        neural_runtime.cloud_student_status = lambda: dict(self.cloud)
+        neural_runtime.student_version_status = lambda version: {**dict(self.cloud), "version": str(version)}
 
     def tearDown(self):
         student_gateway.cloud_student_status = self.old_student_status
-        neural_runtime.cloud_student_status = self.old_runtime_status
+        neural_runtime.student_version_status = self.old_runtime_status
         self.temp.cleanup()
 
     def test_cloudru_student_endpoint_is_restricted(self):
