@@ -15,6 +15,9 @@ from urllib.parse import parse_qs, urlparse
 from account import create_pairing, get_profile, list_devices, pairing_status, revoke_device, save_profile
 from assistant_gateway import build_context, capability_manifest, execute_action, state_snapshot
 from brain import status as brain_status, think as brain_think
+from brain_architecture import architecture_state, consolidate_now
+from brain_scheduler import start as start_brain_scheduler, stop as stop_brain_scheduler
+from self_development import list_proposals, propose as propose_development, transition as transition_development
 from entities import (
     audit_log,
     create_project,
@@ -170,6 +173,14 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             self._json({"ok": True, **brain_status()})
             return
 
+        if parsed.path == "/api/brain/architecture":
+            self._json({"ok": True, **architecture_state()})
+            return
+
+        if parsed.path == "/api/brain/development":
+            self._json({"ok": True, "items": list_proposals()})
+            return
+
         if parsed.path == "/api/assistant/capabilities":
             self._json({"ok": True, **capability_manifest()})
             return
@@ -294,6 +305,30 @@ class MiyoriHandler(BaseHTTPRequestHandler):
                 self._json({"ok": True, "deleted": delete_task(str(payload.get("id", "")))})
                 return
 
+            if parsed.path == "/api/brain/sleep":
+                self._json({"ok": True, "result": consolidate_now()})
+                return
+
+            if parsed.path == "/api/brain/development/propose":
+                proposal = propose_development(
+                    str(payload.get("title", "")),
+                    str(payload.get("rationale", "")),
+                    str(payload.get("target", "")),
+                    str(payload.get("risk", "medium")),
+                )
+                self._json({"ok": True, "proposal": proposal})
+                return
+
+            if parsed.path == "/api/brain/development/transition":
+                proposal = transition_development(
+                    str(payload.get("id", "")),
+                    str(payload.get("state", "")),
+                    note=payload.get("note"),
+                    approved=bool(payload.get("approved", False)),
+                )
+                self._json({"ok": True, "proposal": proposal})
+                return
+
             if parsed.path == "/api/brain/think":
                 result = brain_think(
                     str(payload.get("message", "")),
@@ -339,6 +374,9 @@ class MiyoriHandler(BaseHTTPRequestHandler):
         except KeyError as exc:
             self._json({"ok": False, "error": str(exc).strip("'")}, HTTPStatus.NOT_FOUND)
             return
+        except PermissionError as exc:
+            self._json({"ok": False, "error": str(exc)}, HTTPStatus.FORBIDDEN)
+            return
         except ValueError as exc:
             self._json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
             return
@@ -378,12 +416,15 @@ def main() -> int:
     log.info("%s %s started at %s", APP_NAME, APP_VERSION, url)
     log.info("Portable root: %s", ROOT)
     threading.Thread(target=open_browser, args=(url,), daemon=True).start()
+    start_brain_scheduler()
+    log.info("Miyori Brain sleep/consolidation scheduler started")
 
     try:
         server.serve_forever(poll_interval=0.5)
     except KeyboardInterrupt:
         log.info("Shutdown requested")
     finally:
+        stop_brain_scheduler()
         server.server_close()
         log.info("Core stopped")
     return 0
