@@ -24,7 +24,7 @@ from neural_runtime import runtime_status as neural_runtime_status
 from semantic_memory import status as semantic_memory_status
 from brain_scheduler import start as start_brain_scheduler, stop as stop_brain_scheduler
 from self_development import list_proposals, propose as propose_development, transition as transition_development
-from student_gateway import prepare_for_evaluation as student_prepare_for_evaluation, promote_current as student_promote_current, register_current as student_register_current, status as student_status, validate_configuration_change as student_validate_configuration_change
+from student_gateway import prepare_for_evaluation as student_prepare_for_evaluation, promote_current as student_promote_current, register_current as student_register_current, rollback_current as student_rollback_current, status as student_status, validate_configuration_change as student_validate_configuration_change
 from teacher_gateway import list_feedback as teacher_feedback_list, mark_feedback as teacher_mark_feedback, review as teacher_review, status as teacher_status
 from entities import (
     audit_log,
@@ -487,6 +487,11 @@ class MiyoriHandler(BaseHTTPRequestHandler):
                     min_score=float(payload.get("min_score", 0.75) or 0.75),
                 )
                 self._json({"ok": True, "student": promoted, "status": student_status()})
+                return
+
+            if parsed.path == "/api/brain/student/rollback":
+                restored = student_rollback_current(approved=bool(payload.get("approved", False)))
+                self._json({"ok": True, "restored": restored, "status": student_status()})
                 return
 
             if parsed.path == "/api/brain/teacher/review":
