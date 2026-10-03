@@ -84,6 +84,9 @@ class SentenceTransformersProvider:
     def available(self) -> bool:
         if not self.model_ref:
             return False
+        model_path = Path(self.model_ref).expanduser()
+        if not model_path.exists():
+            return False
         try:
             from sentence_transformers import SentenceTransformer  # noqa: F401
             return True
