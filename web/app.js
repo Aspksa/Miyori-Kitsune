@@ -522,7 +522,7 @@ function renderStudentStatus(student={}){
   const evaluate=document.getElementById("evaluateCloudStudentButton");
   const activate=document.getElementById("activateCloudStudentButton");
   if(evaluate)evaluate.disabled=!configured;
-  if(activate)activate.disabled=!(configured&&["testing","approved"].includes(stage)&&Number(score||0)>=0.66);
+  if(activate)activate.disabled=!(configured&&["testing","approved"].includes(stage)&&Number(score||0)>=0.75);
 }
 
 async function loadStudentStatus(){
@@ -641,7 +641,7 @@ document.getElementById("activateCloudStudentButton").addEventListener("click",a
   const status=document.getElementById("cloudruSaveStatus");
   button.disabled=true;status.textContent="Активирую Miyori Student…";
   try{
-    const data=await api("/api/brain/student/promote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({approved:true,min_score:0.66})});
+    const data=await api("/api/brain/student/promote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({approved:true,min_score:0.75})});
     status.textContent="Miyori Student активирован";
     await Promise.all([loadStudentStatus(),loadBrainOverview(false)]);
   }catch(error){status.textContent=error.message;}
