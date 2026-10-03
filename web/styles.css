@@ -75,3 +75,41 @@
 .student-lifecycle{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;border:1px solid var(--line);border-radius:11px;background:#0b1118}.student-lifecycle span,.student-lifecycle b{display:block}.student-lifecycle span{color:var(--muted-2);font-size:7px;font-weight:800;letter-spacing:.08em}.student-lifecycle b{margin-top:4px;font-size:9px;color:#d7dde6}.student-lifecycle b.student-active{color:var(--accent-soft)}.student-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.student-actions button{padding:7px 10px;font-size:8px}.student-actions button:disabled{opacity:.4;cursor:not-allowed}@media(max-width:720px){.student-lifecycle{align-items:flex-start;flex-direction:column}.student-actions{justify-content:flex-start}}
 
 .danger-soft{border-color:#513335!important;color:#d9a7a7!important;background:#1a1113!important}.danger-soft:hover{border-color:#765054!important;color:#fff!important}.danger-soft:disabled{opacity:.35!important}
+
+/* v0.17 simple UX */
+.nav-label,.system-zone,.nav-item[data-page="home"],.nav-item[data-page="settings"]{display:none!important}
+.sidebar .nav{margin-top:8px}
+.nav-item[data-page="chat"] b{font-size:0}.nav-item[data-page="chat"] b::after{content:"Miyori";font-size:10px}
+.nav-item[data-page="workspace"] b{font-size:0}.nav-item[data-page="workspace"] b::after{content:"Проекты и задачи";font-size:10px}
+.nav-hint,.brand-version,.portable-badge{display:none!important}
+
+#page-chat{padding:18px;display:flex}
+#page-chat:not(.active){display:none}
+.simple-chat{width:min(920px,100%);height:calc(100vh - 112px);margin:0 auto;border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,#111620,#0d1118);display:flex;flex-direction:column;overflow:hidden}
+.simple-chat-header{padding:14px 16px;border-bottom:1px solid var(--line);background:#0d1218}
+.miyori-mini-avatar{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--accent);color:#12150d;font-size:18px;font-weight:900}
+.simple-chat-header .chat-identity b{font-size:13px}.simple-chat-header .chat-identity small{margin-top:3px;color:var(--muted);font-size:8px}
+.simple-action{height:32px;padding:0 11px;border:1px solid var(--line);border-radius:10px;background:#131922;color:#d5dae2;font-size:8px;font-weight:750;cursor:pointer}.simple-action:hover{border-color:var(--line-strong);color:#fff}
+.simple-chat-feed{flex:1;min-height:0;max-height:none;padding:22px}
+.simple-chat-feed .message{max-width:78%}.simple-chat-feed .message p{font-size:11px;line-height:1.65}
+.simple-chat-feed .message-meta span{display:none}
+.simple-thinking{margin:6px 18px 8px}
+.simple-composer{padding:14px 16px 16px;background:#0b1016}.simple-composer textarea{min-height:52px;font-size:12px;padding:14px}.simple-composer .composer-footer{margin-top:7px;display:flex;justify-content:space-between}.simple-hint{color:var(--muted-2);font-size:7px}
+.chat-trace,.assistant-state{display:none!important}
+.technical-state{display:none!important}
+.assistant-overview{display:none!important}
+
+.cloud-simple-card{max-width:900px}
+.cloud-simple-form{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
+.cloud-step{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:16px;border:1px solid var(--line);border-radius:15px;background:#0d1218}
+.cloud-step-number{width:32px;height:32px;border-radius:10px;background:#1b2415;color:var(--accent-soft);display:grid;place-items:center;font-size:11px;font-weight:900}
+.cloud-step-main{min-width:0;display:grid;gap:10px}
+.cloud-step-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.cloud-step-head b,.cloud-step-head small{display:block}.cloud-step-head b{font-size:11px}.cloud-step-head small{margin-top:4px;color:var(--muted);font-size:8px;line-height:1.5}.cloud-step-head>span{white-space:nowrap;padding:5px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:7px}
+.cloud-step label{display:grid;gap:6px;color:var(--muted);font-size:8px}.cloud-step input{width:100%;border:1px solid var(--line-strong);border-radius:10px;background:#10151d;color:#fff;padding:11px;outline:none}
+.cloud-step-actions{display:flex;gap:7px;flex-wrap:wrap}.cloud-step-actions button{padding:8px 11px;font-size:8px}
+.cloud-step-muted{opacity:.72}
+.cloud-advanced{border:1px solid var(--line);border-radius:12px;background:#0b1016}.cloud-advanced summary{padding:12px 14px;color:var(--muted);font-size:8px;cursor:pointer}.cloud-advanced-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 14px 14px}.cloud-advanced-grid label{display:grid;gap:5px;color:var(--muted);font-size:8px}.cloud-advanced-grid input{border:1px solid var(--line);border-radius:9px;background:#10151d;color:#fff;padding:9px}
+.cloud-save-line{display:flex!important;align-items:center;gap:10px!important;margin-top:0!important}.cloud-save-line span{color:var(--muted);font-size:8px}
+.student-lifecycle{display:none!important}
+#teacherSimpleState,.student-active{color:var(--accent-soft)!important}
+@media(max-width:720px){#page-chat{padding:8px}.simple-chat{height:calc(100vh - 86px);border-radius:15px}.simple-chat-feed{padding:14px}.simple-chat-feed .message{max-width:94%}.cloud-step{grid-template-columns:1fr}.cloud-step-number{width:28px;height:28px}.cloud-step-head{flex-direction:column}.cloud-advanced-grid{grid-template-columns:1fr}}
