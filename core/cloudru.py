@@ -10,6 +10,7 @@ import urllib.error
 import urllib.request
 from ctypes import wintypes
 from pathlib import Path
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
 SECRETS_DIR = ROOT / "data" / "secrets"
@@ -21,6 +22,8 @@ API_BASE = "https://api.ai.cloud.ru/public/v2"
 SERVICE_AUTH_URL = API_BASE + "/service_auth"
 FOUNDATION_API_BASE = "https://foundation-models.api.cloud.ru/v1"
 DEFAULT_TEACHER_MODEL = "openai/gpt-oss-120b"
+DEFAULT_STUDENT_MODEL = "Qwen/Qwen3-8B"
+DEFAULT_STUDENT_VERSION = "0.1.0"
 
 
 class CloudRuError(RuntimeError):
@@ -94,6 +97,8 @@ def save_credentials(payload: dict) -> dict:
     api_key = str(payload.get("api_key", "")).strip()
     key_secret = str(payload.get("key_secret", "")).strip()
     foundation_api_key = str(payload.get("foundation_api_key", "")).strip()
+    student_api_key = str(payload.get("student_api_key", "")).strip()
+    student_endpoint = str(payload.get("student_endpoint", current.get("student_endpoint", ""))).strip()
 
     data = {
         "key_id": key_id,
@@ -105,16 +110,27 @@ def save_credentials(payload: dict) -> dict:
         "teacher_model": str(payload.get("teacher_model", current.get("teacher_model", DEFAULT_TEACHER_MODEL))).strip() or DEFAULT_TEACHER_MODEL,
         "teacher_enabled": bool(payload.get("teacher_enabled", current.get("teacher_enabled", True))),
         "teacher_auto_review": bool(payload.get("teacher_auto_review", current.get("teacher_auto_review", False))),
+        "student_endpoint": student_endpoint,
+        "student_model": str(payload.get("student_model", current.get("student_model", DEFAULT_STUDENT_MODEL))).strip() or DEFAULT_STUDENT_MODEL,
+        "student_version": str(payload.get("student_version", current.get("student_version", DEFAULT_STUDENT_VERSION))).strip() or DEFAULT_STUDENT_VERSION,
+        "student_enabled": bool(payload.get("student_enabled", current.get("student_enabled", False))),
     }
     data["api_key"] = _dpapi_encrypt(api_key) if api_key else current.get("api_key", "")
     data["key_secret"] = _dpapi_encrypt(key_secret) if key_secret else current.get("key_secret", "")
     data["foundation_api_key"] = _dpapi_encrypt(foundation_api_key) if foundation_api_key else current.get("foundation_api_key", "")
+    data["student_api_key"] = _dpapi_encrypt(student_api_key) if student_api_key else current.get("student_api_key", "")
+
+    if data["student_endpoint"]:
+        data["student_endpoint"] = _normalize_student_endpoint(data["student_endpoint"])
+    student_values = [data.get("student_endpoint"), data.get("student_api_key")]
+    if any(student_values) and not all(student_values):
+        raise ValueError("Для Miyori Student укажите и ML Inference endpoint, и API Token.")
 
     training_values = [data.get("key_id"), data.get("key_secret"), data.get("workspace_id"), data.get("api_key")]
     if any(training_values) and not all(training_values):
         raise ValueError("Для Cloud.ru GPU Training заполните Key ID, Key Secret, Workspace ID и x-api-key полностью.")
-    if not all(training_values) and not data.get("foundation_api_key"):
-        raise ValueError("Настройте Cloud.ru GPU Training или укажите Foundation Models API Key для Cloud Teacher.")
+    if not all(training_values) and not data.get("foundation_api_key") and not all(student_values):
+        raise ValueError("Настройте хотя бы Cloud Teacher, Miyori Student или Cloud.ru GPU Training.")
 
     _write_json(CREDENTIALS_FILE, data)
     return credentials_status()
@@ -124,10 +140,12 @@ def credentials_status() -> dict:
     data = _read_json(CREDENTIALS_FILE, {})
     training_configured = all(data.get(k) for k in ("key_id", "key_secret", "workspace_id", "api_key"))
     foundation_configured = bool(data.get("foundation_api_key"))
+    student_configured = bool(data.get("student_endpoint") and data.get("student_api_key"))
     return {
         "configured": bool(training_configured),
         "training_configured": bool(training_configured),
         "foundation_configured": foundation_configured,
+        "student_configured": student_configured,
         "key_id": str(data.get("key_id", "")),
         "workspace_id": str(data.get("workspace_id", "")),
         "region": str(data.get("region", "SR006")),
@@ -137,6 +155,11 @@ def credentials_status() -> dict:
         "teacher_model": str(data.get("teacher_model", DEFAULT_TEACHER_MODEL) or DEFAULT_TEACHER_MODEL),
         "teacher_enabled": bool(data.get("teacher_enabled", True)),
         "teacher_auto_review": bool(data.get("teacher_auto_review", False)),
+        "student_endpoint": str(data.get("student_endpoint", "")),
+        "student_model": str(data.get("student_model", DEFAULT_STUDENT_MODEL) or DEFAULT_STUDENT_MODEL),
+        "student_version": str(data.get("student_version", DEFAULT_STUDENT_VERSION) or DEFAULT_STUDENT_VERSION),
+        "student_enabled": bool(data.get("student_enabled", False)),
+        "student_api_key_saved": bool(data.get("student_api_key")),
         "foundation_api_base": FOUNDATION_API_BASE,
         "storage": "windows-dpapi" if platform.system() == "Windows" else "local-file-0600",
         "updated_at": int(data.get("updated_at", 0) or 0),
@@ -219,6 +242,105 @@ def test_foundation_connection() -> dict:
         "models_found": len(rows),
         "selected_model_available": configured["model"] in model_ids if model_ids else None,
         "status": configured,
+    }
+
+
+def _normalize_student_endpoint(value: str) -> str:
+    raw = str(value or "").strip().rstrip("/")
+    if not raw:
+        return ""
+    parsed = urlparse(raw)
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise ValueError("Miyori Student endpoint должен быть HTTPS URL.")
+    hostname = parsed.hostname.lower()
+    if not hostname.endswith(".inference.cloud.ru"):
+        raise ValueError("Miyori Student endpoint должен принадлежать Cloud.ru ML Inference (*.inference.cloud.ru).")
+    path = parsed.path.rstrip("/")
+    if not path:
+        path = "/v1"
+    elif not path.endswith("/v1"):
+        if "/v1/" in path:
+            path = path[: path.index("/v1/") + 3]
+        else:
+            path = path + "/v1"
+    return f"https://{parsed.netloc}{path}"
+
+
+def _student_credentials() -> dict:
+    data = _read_json(CREDENTIALS_FILE, {})
+    if not (data.get("student_endpoint") and data.get("student_api_key")):
+        raise CloudRuError("Miyori Student не настроен. Укажите ML Inference endpoint и API Token.")
+    return {
+        "endpoint": _normalize_student_endpoint(data["student_endpoint"]),
+        "api_key": _dpapi_decrypt(data["student_api_key"]),
+        "model": str(data.get("student_model", DEFAULT_STUDENT_MODEL) or DEFAULT_STUDENT_MODEL),
+        "version": str(data.get("student_version", DEFAULT_STUDENT_VERSION) or DEFAULT_STUDENT_VERSION),
+        "enabled": bool(data.get("student_enabled", False)),
+    }
+
+
+def student_status() -> dict:
+    status = credentials_status()
+    return {
+        "configured": status["student_configured"],
+        "enabled": status["student_enabled"],
+        "endpoint": status["student_endpoint"],
+        "model": status["student_model"],
+        "version": status["student_version"],
+        "api_key_saved": status["student_api_key_saved"],
+        "provider": "cloudru-ml-inference",
+        "role": "miyori-student",
+    }
+
+
+def _student_headers() -> dict:
+    creds = _student_credentials()
+    return {"Authorization": "Bearer " + creds["api_key"]}
+
+
+def student_chat(messages: list[dict], model: str | None = None, max_tokens: int = 800, temperature: float = 0.55) -> dict:
+    creds = _student_credentials()
+    if not creds["enabled"]:
+        raise CloudRuError("Miyori Student отключён в Личном кабинете.")
+    payload = {
+        "model": str(model or creds["model"]).strip() or DEFAULT_STUDENT_MODEL,
+        "messages": messages,
+        "max_tokens": max(64, min(int(max_tokens), 4000)),
+        "temperature": max(0.0, min(float(temperature), 2.0)),
+        "stream": False,
+    }
+    return _request(
+        creds["endpoint"] + "/chat/completions",
+        method="POST",
+        headers=_student_headers(),
+        payload=payload,
+        timeout=120,
+    )
+
+
+def test_student_connection() -> dict:
+    started = time.time()
+    creds = _student_credentials()
+    if not creds["enabled"]:
+        raise CloudRuError("Miyori Student отключён. Включите его перед проверкой.")
+    response = student_chat(
+        [
+            {"role": "system", "content": "Ты проверяешь подключение Miyori Student. Ответь только словом OK."},
+            {"role": "user", "content": "Проверка подключения."},
+        ],
+        model=creds["model"],
+        max_tokens=16,
+        temperature=0.0,
+    )
+    try:
+        content = str(response.get("choices", [])[0].get("message", {}).get("content", "")).strip()
+    except (AttributeError, IndexError, TypeError):
+        content = ""
+    return {
+        "connected": bool(content),
+        "latency_ms": int((time.time() - started) * 1000),
+        "reply": content[:120],
+        "status": student_status(),
     }
 
 
