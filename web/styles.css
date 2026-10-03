@@ -123,3 +123,7 @@
 #page-account .account-profile{display:none!important}
 .cloud-simple-card{grid-column:1!important}
 .brand-copy span{font-size:8px!important}
+
+/* Progressive Cloud setup: only show the next useful action */
+#evaluateCloudStudentButton:disabled,#activateCloudStudentButton:disabled,#rollbackCloudStudentButton:disabled{display:none!important}
+.cloud-advanced:not([open]) + .cloud-save-line{display:none!important}
