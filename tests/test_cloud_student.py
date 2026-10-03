@@ -94,6 +94,19 @@ class CloudStudentTests(unittest.TestCase):
             "student_model": "Qwen/Qwen3-8B",
         })
 
+    def test_student_rollback_requires_approval(self):
+        item = student_gateway.register_current()
+        student_gateway.prepare_for_evaluation()
+        model_registry.update_metrics(item["id"], {"evaluation_score": 1.0})
+        student_gateway.promote_current(approved=True)
+
+        with self.assertRaises(PermissionError):
+            student_gateway.rollback_current(approved=False)
+
+        restored = student_gateway.rollback_current(approved=True)
+        self.assertEqual(restored["id"], model_registry.BUILTIN_MODEL_ID)
+        self.assertEqual(model_registry.active_model()["id"], model_registry.BUILTIN_MODEL_ID)
+
     def test_runtime_refuses_registry_configuration_mismatch(self):
         item = student_gateway.register_current()
         runtime = neural_runtime.CloudStudentRuntime(item)
