@@ -16,12 +16,11 @@ def current_model() -> dict | None:
 
 
 def validate_configuration_change(payload: dict) -> None:
-    item = current_model()
-    if not item or item.get("stage") != "active":
-        return
     cloud = cloud_student_status()
     incoming_version = str(payload.get("student_version", cloud.get("version", "0.1.0")) or "0.1.0").strip()
-    if incoming_version != str(item.get("version")):
+    incoming_id = model_id_for(incoming_version)
+    item = next((row for row in list_models() if row.get("id") == incoming_id), None)
+    if not item or item.get("stage") != "active":
         return
     metadata = item.get("metadata", {}) if isinstance(item.get("metadata"), dict) else {}
     incoming_endpoint = str(payload.get("student_endpoint", cloud.get("endpoint", "")) or "").strip().rstrip("/")
@@ -119,6 +118,8 @@ def status() -> dict:
     cloud = cloud_student_status()
     item = current_model()
     registry = model_registry_summary()
+    active = registry.get("active") or {}
+    active_is_student = active.get("runtime") == "cloud_ml_inference"
     return {
         **cloud,
         "registry_model": item,
@@ -126,7 +127,10 @@ def status() -> dict:
         "stage": item.get("stage") if item else "unregistered",
         "evaluation_score": (item.get("metrics") or {}).get("evaluation_score") if item else None,
         "rollback_available": bool(registry.get("rollback_available")),
-        "active_model_id": (registry.get("active") or {}).get("id"),
+        "active_model_id": active.get("id"),
+        "active_is_student": active_is_student,
+        "active_student_version": active.get("version") if active_is_student else None,
+        "active_student_stage": active.get("stage") if active_is_student else None,
         "policy": {
             "teacher_is_separate": True,
             "activation_requires_explicit_approval": True,
