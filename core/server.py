@@ -17,7 +17,7 @@ from cloudru import CloudRuError, credentials_status as cloudru_status, job_hist
 from training_data import build_dataset as build_training_dataset, list_datasets as list_training_datasets
 from assistant_gateway import build_context, capability_manifest, execute_action, state_snapshot
 from brain import status as brain_status, think as brain_think
-from brain_architecture import architecture_state, consolidate_now
+from brain_architecture import architecture_state, consolidate_now, overview_state
 from brain_scheduler import start as start_brain_scheduler, stop as stop_brain_scheduler
 from self_development import list_proposals, propose as propose_development, transition as transition_development
 from entities import (
@@ -177,6 +177,10 @@ class MiyoriHandler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/brain/architecture":
             self._json({"ok": True, **architecture_state()})
+            return
+
+        if parsed.path == "/api/brain/overview":
+            self._json({"ok": True, **overview_state()})
             return
 
         if parsed.path == "/api/brain/development":
