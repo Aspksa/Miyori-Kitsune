@@ -6,8 +6,8 @@
 
 - GitHub: `Aspksa/Miyori-Kitsune`
 - Ветка: `main`
-- Текущий релиз: **v0.13.0**
-- Последний известный коммит до обновления handoff: `fb9768388769467360fc87eda84995a9b87f21f6`
+- Текущий релиз: **v0.14.0**
+- Последний функциональный релизный коммит: `3a877a379cfceb8714ad99a20ef6f115f0c853e5`
 - Точка запуска Windows: `MiyoriKitsune.bat`
 - Manifest: `version.json`
 
@@ -49,6 +49,28 @@ Cloud.ru — только вычислительная инфраструкту�
 - Добавлены `tests/test_cognitive_foundation.py`.
 
 Важно: это **архитектурные органы**, а не прямой доступ к камере/микрофону/компьютеру. Реальные hardware/tool adapters подключаются отдельно с разрешениями и аудитом.
+
+## Новое в v0.14.0 — Neural Core foundation
+
+Теперь Miyori умеет выбирать runtime по активной модели в Model Registry.
+
+- `core/neural_runtime.py` — runtime selector и локальный `llama_cpp` adapter для GGUF.
+- Если локальная neural model недоступна, автоматически используется `miyori-internal-planner`.
+- Neural runtime используется для обычного разговора; реальные действия по-прежнему идут только через planner + Action Gateway.
+- `core/embeddings.py` — pluggable embeddings.
+  - Реальные neural embeddings включаются только если `MIYORI_EMBEDDING_MODEL` указывает на локальную sentence-transformers модель.
+  - Никакой модели автоматически из интернета не скачивается.
+  - Без neural embeddings работает deterministic local vector fallback.
+- `core/semantic_memory.py` — persistent vector index памяти.
+- Memory v0.4 использует hybrid retrieval: lexical + importance + confidence + recency + vector similarity.
+- `core/model_evaluation.py` — evaluation harness; оценки не могут автоматически активировать модель.
+- Добавлены:
+  - `GET /api/brain/models`
+  - `GET /api/brain/memory/semantic`
+  - `POST /api/brain/model/evaluate`
+- Добавлены тесты `tests/test_neural_memory.py`.
+
+Важно: **обученных собственных весов Miyori ещё нет**. v0.14.0 даёт инфраструктуру, которая уже умеет принять локальную GGUF-модель, подключить её, проверить и безопасно использовать.
 
 ## Что уже реализовано
 
@@ -166,17 +188,15 @@ Chat v1.1 — основной UI.
 
 ## Что делать дальше
 
-Наиболее логичный следующий этап — **Neural Runtime + настоящая semantic memory**:
+Наиболее логичный следующий этап — **первая реальная локальная модель Miyori**:
 
-1. Реальный neural backend за контрактом `BrainModelRuntime`.
-2. Tokenizer/model artifact contract.
-3. Embeddings и vector semantic retrieval.
-4. Context budget + fusion памяти, World Model и навыков.
-5. Evaluation harness.
-6. Подключение image/screen perception adapter.
-7. Затем microphone/STT и TTS adapters.
-8. После этого — расширение «рук» через sandboxed computer/file tools.
-9. Cloud.ru training orchestration: estimate → budget → confirm → train → evaluate → approve → promote/rollback.
+1. Выбрать компактную open-weight GGUF модель с хорошим русским/мультиязычным качеством.
+2. Хранить веса локально в `data/models/`; не коммитить их в Git.
+3. Зарегистрировать модель как candidate с runtime `llama_cpp`.
+4. Запустить evaluation harness.
+5. Только после проверки и явного подтверждения перевести candidate в active.
+6. Затем подключить локальную neural embedding model и сравнить semantic retrieval.
+7. После этого строить Cloud.ru fine-tuning lifecycle с estimate → budget → confirm → train → evaluate → approve → promote/rollback.
 
 Перед новым изменением сначала прочитать:
 - `docs/PROJECT_STATE.json`
