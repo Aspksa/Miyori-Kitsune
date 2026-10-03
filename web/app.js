@@ -517,14 +517,16 @@ function renderStudentStatus(student={}){
   const stage=student.stage||"unregistered";
   const score=student.evaluation_score;
   const configured=!!student.configured;
-  state.textContent=configured?(stage+(score!=null?" · score "+Number(score).toFixed(2):"")):"Не настроен";
-  state.classList.toggle("student-active",stage==="active");
+  const candidateText=configured?(stage+" v"+(student.version||"—")+(score!=null?" · score "+Number(score).toFixed(2):"")):"Не настроен";
+  const activeText=student.active_is_student?" · active v"+(student.active_student_version||"—"):"";
+  state.textContent=candidateText+activeText;
+  state.classList.toggle("student-active",!!student.active_is_student);
   const evaluate=document.getElementById("evaluateCloudStudentButton");
   const activate=document.getElementById("activateCloudStudentButton");
   const rollback=document.getElementById("rollbackCloudStudentButton");
   if(evaluate)evaluate.disabled=!configured;
   if(activate)activate.disabled=!(configured&&["testing","approved"].includes(stage)&&Number(score||0)>=0.75);
-  if(rollback)rollback.disabled=!(stage==="active"&&student.rollback_available);
+  if(rollback)rollback.disabled=!(student.active_is_student&&student.rollback_available);
 }
 
 async function loadStudentStatus(){
