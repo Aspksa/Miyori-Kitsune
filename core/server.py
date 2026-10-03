@@ -14,6 +14,7 @@ from urllib.parse import parse_qs, urlparse
 
 from account import create_pairing, get_profile, list_devices, pairing_status, revoke_device, save_profile
 from assistant_gateway import build_context, capability_manifest, execute_action, state_snapshot
+from brain import status as brain_status, think as brain_think
 from entities import (
     audit_log,
     create_project,
@@ -165,6 +166,10 @@ class MiyoriHandler(BaseHTTPRequestHandler):
             self._json({"ok": True, **build_context(project_id=project_id, task_id=task_id)})
             return
 
+        if parsed.path == "/api/brain/status":
+            self._json({"ok": True, **brain_status()})
+            return
+
         if parsed.path == "/api/assistant/capabilities":
             self._json({"ok": True, **capability_manifest()})
             return
@@ -287,6 +292,17 @@ class MiyoriHandler(BaseHTTPRequestHandler):
 
             if parsed.path == "/api/task/delete":
                 self._json({"ok": True, "deleted": delete_task(str(payload.get("id", "")))})
+                return
+
+            if parsed.path == "/api/brain/think":
+                result = brain_think(
+                    str(payload.get("message", "")),
+                    session_id=str(payload.get("session_id", "default")),
+                    project_id=payload.get("project_id"),
+                    task_id=payload.get("task_id"),
+                    confirmed=bool(payload.get("confirmed", False)),
+                )
+                self._json(result, HTTPStatus.OK if result.get("ok") else HTTPStatus.CONFLICT)
                 return
 
             if parsed.path == "/api/assistant/action":
